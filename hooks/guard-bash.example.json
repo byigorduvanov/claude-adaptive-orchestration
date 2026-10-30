@@ -1,0 +1,4 @@
+{
+  "shared_checkouts": ["~/work/shared-repos"],
+  "blocked_hosts": ["203.0.113.7"]
+}
