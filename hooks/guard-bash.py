@@ -38,8 +38,9 @@ def next_cwd(cwd, target):
 
 
 def decide(cmd, cwd, config):
-    # Quoted text (commit messages, echoes) is not a command.
-    bare = re.sub(r"'[^']*'|\"[^\"]*\"", "''", cmd)
+    # Quoted text (commit messages, echoes) is not a command, but a quoted lone flag ("--force") still is.
+    bare = re.sub(r"""(?<![^\s])["']([-+][^"'\s]*)["'](?![^\s])""", r"\1", cmd)
+    bare = re.sub(r"'[^']*'|\"[^\"]*\"", "''", bare)
     shared = [os.path.realpath(os.path.expanduser(p)) for p in config.get("shared_checkouts", [])]
     cds = iter(CD.findall(cmd))
     for part in re.split(r"&&|\|\||;|\||\n", bare):
@@ -52,7 +53,7 @@ def decide(cmd, cwd, config):
         before, rest = words[: words.index("git")], words[words.index("git") + 1 :]
         if "push" in rest:
             args = rest[rest.index("push") + 1 :]
-            forced = any(a in ("-f", "--force") or a.startswith("--force-with-lease") or (a.startswith("+") and len(a) > 1) for a in args)
+            forced = any(a == "--force" or re.fullmatch(r"-[A-Za-z]*f[A-Za-z]*", a) or a.startswith("--force-with-lease") or (a.startswith("+") and len(a) > 1) for a in args)
             if forced and APPROVAL not in before:
                 return "deny", f"Force push: ask the owner first and wait for a yes. After that yes, prefix the command with {APPROVAL}."
         if "add" in rest:
@@ -62,7 +63,7 @@ def decide(cmd, cwd, config):
             if where is not None and (cwd is not None or os.path.isabs(os.path.expanduser(where))):
                 where = os.path.realpath(os.path.join(cwd or "/", os.path.expanduser(where)))
                 inside = any(where == p or where.startswith(p + os.sep) for p in shared)
-            if inside and any(a in ("-A", "--all", ".", "-u") for a in args):
+            if inside and any(a in ("-A", "--all", ".", "-u", "--update") for a in args):
                 return "deny", "Other sessions share this checkout: stage named paths only, never everything."
     for host in config.get("blocked_hosts", []):
         if re.search(r"\b(ssh|scp|sftp|rsync)\b.*(?<![\w.-])" + re.escape(host) + r"(?![\w.-])", bare):
