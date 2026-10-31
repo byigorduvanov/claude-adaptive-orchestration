@@ -90,8 +90,8 @@ Full tables, earlier versions, and the measurement mistakes made along the way: 
 │   └── reviewer-memory.example.md  # failure classes for the reviewer
 ├── hooks/task-contract.py          # UserPromptSubmit: adds the task contract
 ├── agents/
-│   ├── scout.md                    # haiku/low   — mechanical collection, no judgement
-│   ├── reviewer.md                 # sonnet/medium — read-only review, ordinary code
+│   ├── scout.md                    # haiku/medium — mechanical collection, no judgement
+│   ├── reviewer.md                 # sonnet/high — read-only review, ordinary code
 │   ├── critical-reviewer.md        # opus/medium — read-only review where mistakes are expensive
 │   └── verifier.md                 # opus/medium — tries to refute a batch of claims
 ├── evals/

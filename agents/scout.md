@@ -2,7 +2,7 @@
 name: scout
 description: Mechanical collection with no judgement — list files, grep for a symbol, count matches, dump a config or log section, collect versions or git state across repositories. Returns raw facts with file:line, never conclusions.
 model: haiku
-effort: low
+effort: medium
 tools: Read, Grep, Glob, Bash
 maxTurns: 25
 omitClaudeMd: true

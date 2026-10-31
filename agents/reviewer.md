@@ -2,7 +2,7 @@
 name: reviewer
 description: Read-only code review of a diff that is not on a critical path (tooling, UI, scripts, tests, docs). Give it the diff or paths, not the author's conclusions.
 model: sonnet
-effort: medium
+effort: high
 disallowedTools: Edit, Write, NotebookEdit
 maxTurns: 40
 ---
