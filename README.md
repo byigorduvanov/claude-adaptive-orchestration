@@ -23,8 +23,8 @@ There is no fixed pipeline. The session answers three questions and attaches onl
 ## Install
 
 ```bash
-git clone https://github.com/byigorduvanov/claude-code-adaptive-orchestration
-cd claude-code-adaptive-orchestration
+git clone https://github.com/byigorduvanov/claude-adaptive-orchestration
+cd claude-adaptive-orchestration
 mkdir -p ~/.claude/agents ~/.claude/hooks
 cp agents/*.md ~/.claude/agents/
 cp hooks/guard-bash.py ~/.claude/hooks/
