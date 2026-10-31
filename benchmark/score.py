@@ -41,7 +41,11 @@ def scan(path, tok, seen, report_at=None):
 
 task, arms = sys.argv[1], sys.argv[2:]
 for arm in arms:
-    sid = open(f"{AB}/{task}/{arm}/session-id").read().strip()
+    try:
+        sid = open(f"{AB}/{task}/{arm}/session-id").read().strip()
+    except OSError:
+        print(f"{task}/{arm}: no session-id file; run run_arm.sh for this task and arm first")
+        continue
     hits = glob.glob(f"{ROOT}/{arm}/projects/*/{sid}.jsonl")
     if not hits:
         print(f"{task}/{arm}: no transcript for {sid}")
@@ -49,6 +53,9 @@ for arm in arms:
     main = hits[0]
     tok, seen, report = defaultdict(int), set(), []
     first, last = scan(main, tok, seen, report)
+    if not first:
+        print(f"{task}/{arm}: transcript {main} has no timestamps")
+        continue
     agents = Counter()
     for sub in glob.glob(main[:-6] + "/subagents/*.jsonl"):
         f, l = scan(sub, tok, seen)
