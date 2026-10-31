@@ -84,6 +84,13 @@ Earlier versions of the rules, kept for the history. Tokens are input-equivalent
 - **Run both arms together.** In the earlier runs the arms did not all use the same CLI version or the same state of the data. Rerun both at once, with hidden labels.
 - **Treat a gap under about a point as noise.** One config scored 6.25 and 7.25 on the same task.
 
+## Reviewer evals and bug reconciliation (10-31)
+
+- **Reviewer evals:** 2 of 3 passed, one run per case, graded by a small judge reading the report. Missed: a safety margin thinner than one price step.
+- **Stop hook replay:** "code edited, nothing run after it" over 842 turns of 52 sessions in 14 days fired on 4 of 47 turns with edits, none on trading code. Dropped.
+- **Automatic bug records vs. failure classes:** of 95 `bugfix` records in 14 days, 21 were about money code. 7 were covered by the reviewer's classes, 3 partly, 11 not, which gave 5 new classes. Sorted by hand from titles and the start of each record.
+- **A record is not a fix.** One record said a bug was guarded, but the fix existed only in a benchmark arm and was never merged. Check the code, not the record.
+
 ## Not measured
 
-Whether the plan-per-task rules reduce rework on real work. The next step is to classify new sessions and compare the rework share per type.
+Whether the current short rules and the task contract hook reduce rework on real work. They have not been through the A/B test either. The next step is to classify new sessions and compare the rework share per type.

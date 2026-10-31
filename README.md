@@ -2,16 +2,16 @@
 
 # Adaptive orchestration for Claude Code
 
-**Let the main session decide, per task, whether to work alone or build a team of subagents.**
+**How I run Claude Code: one session by default, proof before "done", and prompts that can stay short.**
 
-Rules for `CLAUDE.md`, four lean agent definitions, a guard hook, and the A/B kit and honest numbers behind them.
+My real rules, four lean agents, a prompt hook, reviewer evals, and the A/B kit and honest numbers behind them.
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 ![Claude Code](https://img.shields.io/badge/Claude%20Code-rules%20%2B%20agents%20%2B%20hook-d97757)
 ![Status](https://img.shields.io/badge/status-experimental-orange)
-![Guard tests](https://img.shields.io/badge/guard%20tests-35%20cases-brightgreen)
+![Hook tests](https://img.shields.io/badge/hook%20tests-10%20cases-brightgreen)
 
-[How it works](#how-it-works) · [Results](#results-read-this-first) · [Install](#install) · [Guard hook](#guard-hook) · [Benchmark kit](#benchmark-kit) · [Українською](#українською)
+[How it works](#how-it-works) · [Results](#results-read-this-first) · [Install](#install) · [Task contract hook](#task-contract-hook) · [Reviewer evals](#reviewer-evals) · [Benchmark kit](#benchmark-kit) · [Українською](#українською)
 
 </div>
 
@@ -27,103 +27,47 @@ The numbers from one owner's **692 real sessions** say where the time actually g
 - **Only ~7%** of sessions split into independent parts. One coupled thread is the normal case.
 - Rework is concentrated: incidents (42%), ports from a sibling (41%) and fixes (35%) — not questions or deploys.
 
-So instead of a pipeline, this repo gives the main session a way to **route each task itself** and attach a helper only where it pays.
+So there is no pipeline. One session does the work, proves the result, and adds a helper only where it pays. The owner writes the task in plain words: the rest comes from a hook.
 
 ## How it works
 
-The main session is the router. No router agent, no mandatory stages. Before starting, it answers three questions in one or two lines:
-
-| # | Question | What it decides |
-|---|---|---|
-| 1 | **What would prove this is done?** | The evidence to collect before saying "done": a failing-then-passing test, a log line, a live probe, a record id. |
-| 2 | **What can run at once?** | Whether anything is truly independent: parts of the work, or sources of evidence (logs, DB, code, external system). |
-| 3 | **What is expensive to get wrong?** | Where a fresh reviewer or verifier earns its cost — and nowhere else. |
-
 ```mermaid
 flowchart LR
-    T([Task]) --> R{{"Main session<br/>answers 3 questions"}}
-    R -->|one coupled thread| S["Solo<br/>(the usual case)"]
-    R -->|independent parts or<br/>evidence sources| P["Parallel readers<br/>scout · general-purpose"]
-    R -->|mistake is expensive| V["One fresh reviewer<br/>critical-reviewer · verifier"]
-    S --> E[["Evidence:<br/>command + output,<br/>record id, log line"]]
-    P --> E
-    V --> E
+    P([Prompt in plain words]) --> H[["Task contract hook<br/>added to every prompt"]]
+    H --> M{{"Main session<br/>searches first"}}
+    M -->|only the owner knows| Q["Asks once,<br/>before the work"]
+    M -->|enough facts| W["Works in one session"]
+    Q --> W
+    W -->|diff can move money| R["One fresh reviewer"]
+    W --> E[["Proof:<br/>command + output,<br/>record id, log line"]]
+    R --> E
     E --> D([Done])
 ```
 
-An agent is added **only** for one of four reasons:
-
-| Reason | Example |
+| Piece | What it does |
 |---|---|
-| **Noisy output** | Logs, dumps and wide reads come back as a 25-line summary instead of flooding the context. |
-| **Breadth** | An audit too wide for one pass: parallel readers per area. |
-| **Fewer tools** | A reviewer that physically cannot edit. |
-| **Fresh eyes** | A reviewer that never saw the author's reasoning, only the diff. |
+| [`hooks/task-contract.py`](hooks/task-contract.py) | Adds seven working rules to every prompt, so the owner does not have to write them |
+| [`config/CLAUDE.md`](config/CLAUDE.md) | My global rules: one session by default, model and effort per agent, proof before "done" |
+| [`agents/critical-reviewer.md`](agents/critical-reviewer.md) | A fresh read-only reviewer for diffs that can move money. It loads real failure classes from memory |
+| [`evals/`](evals/run.py) and [`skills/reviewer-evals`](skills/reviewer-evals/SKILL.md) | Each confirmed incident becomes a failure class and a test of the reviewer |
 
-A subagent on the same task gives no smarter answer and starts cold. Parallelism mostly buys thoroughness, not speed.
-
-<details>
-<summary><b>Default plan per task type</b></summary>
-
-| Task | Usually needs |
-|---|---|
-| Incident, "why did X happen" | Gather logs, database and external state in parallel; name a cause only with a record id or log line |
-| Port a pattern from a sibling | Read the source first; copy it, add no new logic; parity check against the sibling |
-| Fix | Reproduce first with a failing test or probe; on critical code one independent reviewer, at most one re-check |
-| Data, report, page | Solo, no verifier by default; parallel per data group if big; check numbers against the source |
-| Live test | Solo; read the result back from the real system |
-| Deploy, ops | Solo; re-read the real state afterwards |
-| Feature | One thread; agents per part only for independent parts, roughly over 3000 changed lines |
-| Audit, inventory | Parallel readers per area |
-| Question, status | Solo; short, plain words |
-
-</details>
-
-<details>
-<summary><b>Roles, models and effort</b></summary>
-
-Model and effort are always set explicitly in the call — an omitted model silently inherits the most expensive one.
-
-| Role | Agent type | Model / effort |
-|---|---|---|
-| Collect, list, grep, dump | `scout` | haiku / low |
-| Read, trace, inventory, docs research | default `general-purpose` (`Explore` only to locate code) | sonnet / medium; opus / medium on critical paths |
-| Write ordinary code, mirror a pattern, tests | default `general-purpose` | sonnet / medium |
-| Write critical code | default `general-purpose` | opus / medium |
-| Review an ordinary diff | `reviewer` | sonnet / medium |
-| Review a critical diff | `critical-reviewer` | opus / medium |
-| Refute claims and findings | `verifier` | opus / medium |
-
-Writers in one repository each get `isolation: "worktree"`. Reviewers get the diff, not the author's summary.
-
-</details>
-
-<details>
-<summary><b>Other rules in the set</b></summary>
-
-- **Done means proven.** The report quotes the command and its output, or the record id and log line.
-- **Never a serial chain.** Don't wait on an agent while an independent step is left.
-- **Bound the review.** Explicit criteria, "report only gaps that affect correctness, skip style". One review, then one re-check of the fix diff only.
-- **Brief with paths, not file contents**, and ask for a short return (~25 lines, no code or diffs).
-- **A finding from an agent is a claim** until verified; anything unchecked is marked "not verified".
-- **When completeness matters**, pair a reader with a mechanical sweep and diff the two lists.
-
-Full text: [`config/CLAUDE.orchestration.md`](config/CLAUDE.orchestration.md).
-
-</details>
+An agent is added **only** for truly independent parts (a broad audit, a large migration), for noisy output returned as a short summary, or as a fresh reviewer. A subagent on the same task gives no smarter answer and starts cold.
 
 ## Results: read this first
 
 > [!IMPORTANT]
 > **This is not proven to beat one plain Claude Code session.** Every number below is **one run** per task and arm, on one owner's real work (Opus 5.5, October 2026). It shows direction, not a precise measurement. A gap under about one point is noise.
 
-Latest test — current rules vs. one plain session, run at the same time, same CLI version, base commit, skills and memory, labels hidden until grading ended:
+> [!NOTE]
+> These runs tested the earlier, longer rules. The current short rules and the task contract hook have **not** been through this test.
+
+Latest test — those rules vs. one plain session, run at the same time, same CLI version, base commit, skills and memory, labels hidden until grading ended:
 
 | Task | Arm | Score | Time | Tokens | Agents | Worst defect |
 |---|---|---|---|---|---|---|
-| Fix on a money path | **Current rules** | **7.75** | 28.5 min | 2.00M | 1 reviewer | MEDIUM |
+| Fix on a money path | **Longer rules** | **7.75** | 28.5 min | 2.00M | 1 reviewer | MEDIUM |
 | | One session | 7.25 | **18 min** | **1.20M** | — | **HIGH** |
-| Triage of a validator's findings | Current rules | 8.8 | 14.8 min | 1.37M | — | — |
+| Triage of a validator's findings | Longer rules | 8.8 | 14.8 min | 1.37M | — | — |
 | | One session | 8.8 | 14.1 min | 1.23M | — | — |
 
 **What that means**
@@ -141,26 +85,24 @@ Full tables, earlier versions, and the measurement mistakes made along the way: 
 ```text
 .
 ├── config/
-│   ├── CLAUDE.orchestration.md   # the rules — paste into CLAUDE.md
-│   └── settings.example.json     # hooks block for settings.json
+│   ├── CLAUDE.md                   # my global rules, minus private operations
+│   ├── settings.example.json       # hooks block for settings.json
+│   └── reviewer-memory.example.md  # failure classes for the reviewer
+├── hooks/task-contract.py          # UserPromptSubmit: adds the task contract
 ├── agents/
-│   ├── scout.md                  # haiku/low   — mechanical collection, no judgement
-│   ├── reviewer.md               # sonnet/medium — read-only review, ordinary code
-│   ├── critical-reviewer.md      # opus/medium — read-only review where mistakes are expensive
-│   └── verifier.md               # opus/medium — tries to refute a batch of claims
-├── hooks/
-│   ├── guard-bash.py             # PreToolUse(Bash) guard
-│   └── guard-bash.example.json   # shared checkouts + blocked hosts
-├── benchmark/
-│   ├── setup_arms.sh             # two blind config arms with a random mapping
-│   ├── run_arm.sh                # headless run of one arm on one task
-│   ├── score.py                  # wall time, deduped tokens, subagents per arm
-│   ├── grader_brief_template.md  # one brief for every arm
-│   └── classify_brief.md         # classify past sessions by type and rework
-├── tests/test_guard.py           # 35 cases, runs the hook as Claude Code does
+│   ├── scout.md                    # haiku/low   — mechanical collection, no judgement
+│   ├── reviewer.md                 # sonnet/medium — read-only review, ordinary code
+│   ├── critical-reviewer.md        # opus/medium — read-only review where mistakes are expensive
+│   └── verifier.md                 # opus/medium — tries to refute a batch of claims
+├── evals/
+│   ├── run.py                      # runs the reviewer against known incidents
+│   └── cases/example/case.json     # the case format
+├── skills/reviewer-evals/SKILL.md  # incident → failure class → eval case
+├── benchmark/                      # blind A/B kit for two configs
+├── tests/test_task_contract.py     # 10 cases, runs the hook as Claude Code does
 └── docs/
-    ├── RESULTS.md                # every run, with caveats
-    └── SOURCES.md                # what the rules are based on
+    ├── RESULTS.md                  # every run, with caveats
+    └── SOURCES.md                  # what the rules are based on
 ```
 
 ## Install
@@ -171,43 +113,53 @@ Full tables, earlier versions, and the measurement mistakes made along the way: 
 git clone https://github.com/byigorduvanov/claude-adaptive-orchestration
 cd claude-adaptive-orchestration
 
-mkdir -p ~/.claude/agents ~/.claude/hooks
+mkdir -p ~/.claude/agents ~/.claude/hooks ~/.claude/skills ~/.claude/evals/critical-reviewer/cases
+mkdir -p ~/.claude/agent-memory/critical-reviewer
 cp agents/*.md ~/.claude/agents/
-cp hooks/guard-bash.py ~/.claude/hooks/
-cp hooks/guard-bash.example.json ~/.claude/hooks/guard-bash.json
+cp hooks/task-contract.py ~/.claude/hooks/
+cp -R skills/reviewer-evals ~/.claude/skills/
+cp evals/run.py ~/.claude/evals/critical-reviewer/
+cp config/reviewer-memory.example.md ~/.claude/agent-memory/critical-reviewer/MEMORY.md
 
-python3 tests/test_guard.py   # expect: 35 cases, 0 failures
+python3 tests/test_task_contract.py   # expect: 10 cases, 0 failures
 ```
 
 Then:
 
-1. **Guard config** — edit `~/.claude/hooks/guard-bash.json` with your own shared checkouts and blocked hosts.
-2. **Hook** — merge the `hooks` block from [`config/settings.example.json`](config/settings.example.json) into `~/.claude/settings.json`, keeping your other settings.
-3. **Rules** — paste [`config/CLAUDE.orchestration.md`](config/CLAUDE.orchestration.md) into `~/.claude/CLAUDE.md`, and trim the task table to the kinds of work you actually do.
-4. **Tune** — `critical-reviewer` is generic: add the failure modes of your own domain to it.
+1. **Hook** — merge the `hooks` block from [`config/settings.example.json`](config/settings.example.json) into `~/.claude/settings.json`, keeping your other settings.
+2. **Rules** — take what fits from [`config/CLAUDE.md`](config/CLAUDE.md) into `~/.claude/CLAUDE.md`. It is written for trading code: adjust the money wording to your own expensive mistakes.
+3. **Tune** — replace the failure classes with your own incidents.
 
 New sessions pick up `CLAUDE.md` automatically.
 
-## Guard hook
+## Task contract hook
 
-A small `PreToolUse` hook for the few rules that have **no exceptions**:
+A `UserPromptSubmit` hook that adds this to every prompt from the owner, and nothing to agent reports or app events:
 
-| Blocks | Unless |
-|---|---|
-| `git push --force` / `-f` / `--force-with-lease` / `+branch` | the command is prefixed with `OWNER_APPROVED_FORCE_PUSH=1` after the owner said yes |
-| `git add -A` / `.` / `--all` / `-u` inside a shared checkout | you stage named paths |
-| `ssh` / `scp` / `sftp` / `rsync` to a blocked host | never |
-
-Quoted text (commit messages, `echo`) is ignored, and `cd` / `git -C` are followed to find the real directory.
-
-```console
-$ echo '{"tool_input":{"command":"git push --force origin main"},"cwd":"/tmp"}' | python3 hooks/guard-bash.py
-{"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "deny",
- "permissionDecisionReason": "Force push: ask the owner first and wait for a yes. After that yes, prefix the command with OWNER_APPROVED_FORCE_PUSH=1."}}
+```text
+1. Done when: derive the proof yourself, state it first, quote it at the end, or say "not verified".
+2. Bug or incident: prove the cause, then a failing test, then the fix.
+3. Port: read the sibling first, copy without new logic, list the differences.
+4. Missing facts: search first. Ask once, before the work, only what the owner alone knows.
+5. Money bug: keep the failing test in the repo, with real numbers from the incident.
+6. Big or vague task: interview the owner, write SPEC.md, build in a fresh session.
+7. After two failed fixes in a row, stop and hand over a clean prompt for a new session.
 ```
 
+Shortened here; [the script](hooks/task-contract.py) has the full text. Why a hook: `CLAUDE.md` is read at the start and fades in a long session, while the hook puts the rules next to each task. It costs no model call.
+
 > [!NOTE]
-> It stops **accidents, not a determined agent**: the session can set the approval variable itself, and a differently written command can slip past the text matching. It fails open on any error. It uses `deny` because, in testing under `bypassPermissions`, an `ask` decision did not stop the command.
+> It is an instruction, not a lock: the model can still break it. I confirmed that the text reaches the model, not that rework went down.
+
+**Tried and dropped:** a Stop hook for "code edited, nothing run after it". Replayed on 842 past turns, it would have fired on 4 of 47 turns with edits, none on trading code. Rework comes from weak proof, not from missing runs.
+
+**Removed:** an earlier `PreToolUse` guard against force push. Those rules are now plain text in `CLAUDE.md`, so nothing blocks them in code. The guard is in the git history.
+
+## Reviewer evals
+
+Each confirmed incident becomes a failure class in the reviewer's memory and, when it can be reproduced from code, a test case. `python3 ~/.claude/evals/critical-reviewer/run.py` reviews each case without the memory file, since it contains the answers, and a small judge grades the report. My real cases hold private code, so only the format is here.
+
+First run: **2 of 3 passed**, one run per case. The reviewer caught logic bugs in a new diff and missed a numeric trap that depends on price scale, so such bugs need a test with real numbers.
 
 ## Benchmark kit
 
@@ -251,11 +203,11 @@ Full list with notes: [docs/SOURCES.md](docs/SOURCES.md).
 
 ## Українською
 
-**Що це.** Правила для Claude Code, за якими основна сесія сама вирішує під кожну задачу: працювати самій чи зібрати команду субагентів. Жодного фіксованого пайплайна — сесія відповідає на три питання (*що доведе, що зроблено? що може йти паралельно? де помилка дорога?*) і додає агента лише там, де він окупається.
+**Що це.** Так у мене налаштований Claude Code. Одна сесія за замовчуванням, доказ перед словом «готово» і короткі промпти: правила додає hook, а модель сама шукає факти й питає лише те, що знає тільки власник.
 
-**Що всередині.** Текст правил для `CLAUDE.md`, чотири агенти (`scout`, `reviewer`, `critical-reviewer`, `verifier`), хук, що блокує випадковий force-push і `git add -A` у спільних репозиторіях, та кит для сліпого A/B-порівняння конфігурацій на власних задачах.
+**Що всередині.** Мої правила `CLAUDE.md` без приватних деталей, hook із контрактом задачі, чотири агенти, тести рецензента на реальних інцидентах і кит для сліпого A/B-порівняння конфігурацій.
 
-**Чесно про результат.** Що схема краща за звичайну сесію — **не доведено**. На розборі даних — нічия. На грошовому фіксі незалежне рев'ю прибрало єдиний HIGH-дефект ціною +10 хвилин. На широкому аудиті паралельні агенти виграли (8 проти 6.5). Кожна цифра — один прогін. Деталі в [docs/RESULTS.md](docs/RESULTS.md).
+**Чесно про результат.** Що ці правила кращі за звичайну сесію, **не доведено**. Поточні короткі правила і hook ще не проходили A/B, а зменшення переробок поки не виміряно. На грошовому фіксі незалежне рев'ю прибрало єдиний HIGH-дефект ціною +10 хвилин. Кожна цифра — один прогін. Деталі в [docs/RESULTS.md](docs/RESULTS.md).
 
 ## License
 

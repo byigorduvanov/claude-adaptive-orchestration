@@ -1,0 +1,2 @@
+{"id": "example", "repo": "~/work/<repo>", "base": "<commit with the bug>", "patch": "optional.diff",
+ "focus": "paths or the change to review, with no hint of the bug", "expect": "what a passing review must identify"}
