@@ -8,7 +8,7 @@ There is no fixed pipeline. The session answers three questions and attaches onl
 2. What can run at once?
 3. What is expensive to get wrong?
 
-**This is not proven to beat one plain session.** On small tasks in our runs it took about twice as long, scored higher on a money-path fix, and no better on a data triage. Parallel agents clearly helped only on a broad audit. Each number is one run: see [docs/RESULTS.md](docs/RESULTS.md).
+**This is not proven to beat one plain session.** In a test with hidden labels, a data triage was a tie (8.8 each, about 15 minutes). On a money-path fix, the rules scored about the same (7.75 vs 7.25) and removed the only HIGH defect, but took 28.5 minutes instead of 18. An earlier version of the rules won a broad audit with parallel agents; the current one has not run it. Each number is one run: see [docs/RESULTS.md](docs/RESULTS.md).
 
 ## What's here
 
@@ -59,7 +59,7 @@ macOS and zsh; `cp -c` needs APFS. Runs use your Claude plan or API usage: an Op
 
 ## Українською
 
-Правила для Claude Code: основна сесія сама вирішує під кожну задачу, працювати самій чи зібрати команду агентів. Хук блокує випадковий force-push. Поруч лежить кит для порівняння конфігурацій. Те, що схема краща за звичайну сесію, не доведено: чесні цифри в [docs/RESULTS.md](docs/RESULTS.md).
+Правила для Claude Code: основна сесія сама вирішує під кожну задачу, працювати самій чи зібрати команду агентів. Хук блокує випадковий force-push. Поруч лежить кит для порівняння конфігурацій. Те, що схема краща за звичайну сесію, не доведено: на розборі даних нічия, а на грошовому фіксі рев'ю прибрало найгірший дефект ціною 10 зайвих хвилин. Чесні цифри в [docs/RESULTS.md](docs/RESULTS.md).
 
 ## License
 
