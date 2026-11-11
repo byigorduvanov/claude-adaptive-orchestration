@@ -42,5 +42,7 @@ In `~/.claude/settings.json`:
   claude.ai connectors off, browser tools off when not needed.
 - The memory index keeps only owner rules and topic indexes; dated notes live in
   topic index files.
+- `CLAUDE.md` went from 13.7k to 8.8k characters: every rule kept, benchmark numbers,
+  incident stories and long example lists removed.
 
 Not measured yet: the baseline of a new session after these changes.
