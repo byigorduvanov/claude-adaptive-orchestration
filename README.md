@@ -102,7 +102,8 @@ Full tables, earlier versions, and the measurement mistakes made along the way: 
 ├── tests/test_task_contract.py     # 10 cases, runs the hook as Claude Code does
 └── docs/
     ├── RESULTS.md                  # every run, with caveats
-    └── SOURCES.md                  # what the rules are based on
+    ├── SOURCES.md                  # what the rules are based on
+    └── context-budget.md           # what loads before the first message, and the trim
 ```
 
 ## Install
