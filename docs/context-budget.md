@@ -45,4 +45,32 @@ In `~/.claude/settings.json`:
 - `CLAUDE.md` went from 13.7k to 8.8k characters: every rule kept, benchmark numbers,
   incident stories and long example lists removed.
 
-Not measured yet: the baseline of a new session after these changes.
+
+## Second measurement and pass (2026-11-12)
+
+First request of a new session after the changes above (Claude Code 2.1.321, desktop app,
+from the transcript's `usage`): **48,226 tokens** (input 2 + cache_creation 24,204 +
+cache_read 24,020), down from 88k (−45%). Split by character share (~2.8 chars/token here):
+
+| Part | ~tokens | chars now / before |
+|---|---|---|
+| Tool schemas (20 tools) | 15.5k | 43k / ~185k |
+| App system prompt | 10.2k | 29k / ~35k |
+| Skill listing (103 skills) | 10.7k | 30k / ~30k |
+| `CLAUDE.md` + memory index | 5.0k | 14k / ~20k |
+| Memory plugin | 1.9k | 5.2k / ~9.8k |
+| Agent types + deferred tool names | 3.0k | 8.4k |
+
+Usage over 30 days (90 sessions) showed 17 of 103 skills invoked and several app tools
+almost never called. Second pass:
+
+- `permissions.deny` += `Workflow` (re-enable for ultracode), `mcp__visualize__show_widget`,
+  `mcp__visualize__read_me`, `mcp__terminal__read_terminal`, `mcp__ccd_session__mark_chapter`,
+  `mcp__ccd_session__hand_off_to_session`, `mcp__ccd_session__read_widget_context` (~4k tokens).
+- Personal skill descriptions cut from ~450–900 to ~220–280 characters, keeping the main
+  Ukrainian trigger phrases (~8k chars, ~3k tokens).
+- Seven rarely used research skills set to `name-only` in `skillOverrides`.
+- Still large and fixed: app system prompt, app task-list tools (`wrap_up`, `update_plan`).
+- The task-contract hook adds ~0.5k tokens to every user message, not once per session.
+
+Not measured yet: the first request of a new session after the second pass.

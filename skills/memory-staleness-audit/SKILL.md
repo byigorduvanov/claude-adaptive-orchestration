@@ -1,6 +1,6 @@
 ---
 name: memory-staleness-audit
-description: Audit a Claude Code auto-memory directory (MEMORY.md + topic notes), a personal markdown vault (index.md + notes in subfolders, Obsidian-style) and the claude-mem work state for stale facts — superseded hosts, IDs and accounts stated as current, notes from an earlier era with no context marker, relative dates, overdue "recheck in N weeks" deadlines, expired keys, todos blocked for weeks, broken or missing index links, an index past the 200-line / 25 KB load limit — then fix them without deleting anything. Use for "почисти пам'ять", "перевір vault", "покажи застарілі записи", "перевір пам'ять на старе", "memory audit", "is my memory stale", "чому Claude діє за старою нотаткою", after a migration that changed hosts, accounts or access, and for the weekly scheduled run. Use it before trusting an old note on access or infrastructure; reach for it rather than reading notes one by one.
+description: "Audit auto-memory, the personal vault and claude-mem work state for stale facts (old hosts/accounts, relative dates, overdue rechecks, broken links, oversize index) and fix without deleting. Use for \"почисти пам'ять\", \"перевір vault\", \"перевір пам'ять на старе\", the weekly run."
 ---
 
 # Memory staleness audit
