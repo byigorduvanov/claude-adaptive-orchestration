@@ -50,6 +50,7 @@ flowchart LR
 | [`config/CLAUDE.md`](config/CLAUDE.md) | My global rules: one session by default, model and effort per agent, proof before "done" |
 | [`agents/critical-reviewer.md`](agents/critical-reviewer.md) | A fresh read-only reviewer for diffs that can move money. It loads real failure classes from memory |
 | [`evals/`](evals/run.py) and [`skills/reviewer-evals`](skills/reviewer-evals/SKILL.md) | Each confirmed incident becomes a failure class and a test of the reviewer |
+| [`skills/memory-staleness-audit`](skills/memory-staleness-audit/SKILL.md) | A weekly lint of the memory notes: old hosts and accounts stated as current, relative dates, overdue rechecks. It marks stale notes and never deletes them |
 
 An agent is added **only** for truly independent parts (a broad audit, a large migration), for noisy output returned as a short summary, or as a fresh reviewer. A subagent on the same task gives no smarter answer and starts cold.
 
@@ -98,6 +99,7 @@ Full tables, earlier versions, and the measurement mistakes made along the way: 
 │   ├── run.py                      # runs the reviewer against known incidents
 │   └── cases/example/case.json     # the case format
 ├── skills/reviewer-evals/SKILL.md  # incident → failure class → eval case
+├── skills/memory-staleness-audit/  # lint script + skill: find and mark stale memory notes
 ├── benchmark/                      # blind A/B kit for two configs
 ├── tests/test_task_contract.py     # 10 cases, runs the hook as Claude Code does
 └── docs/
@@ -118,7 +120,7 @@ mkdir -p ~/.claude/agents ~/.claude/hooks ~/.claude/skills ~/.claude/evals/criti
 mkdir -p ~/.claude/agent-memory/critical-reviewer
 cp agents/*.md ~/.claude/agents/
 cp hooks/task-contract.py ~/.claude/hooks/
-cp -R skills/reviewer-evals ~/.claude/skills/
+cp -R skills/reviewer-evals skills/memory-staleness-audit ~/.claude/skills/
 cp evals/run.py ~/.claude/evals/critical-reviewer/
 cp config/reviewer-memory.example.md ~/.claude/agent-memory/critical-reviewer/MEMORY.md
 
