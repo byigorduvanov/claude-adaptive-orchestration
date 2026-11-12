@@ -94,6 +94,17 @@ Raw notes, with one quoted line per recommendation (about 105 rows), and a copy 
 | 35 | An enabled plugin costs context on every turn; check `/plugin` context cost (PL) | One plugin, `claude-mem` | follow | Its cost goes in the weekly review if usage shows it unused |
 | 36 | Output styles are instructions, not enforcement; custom ones need `keep-coding-instructions: true` (OS) | Default style; language and format rules in `CLAUDE.md:3-4` | follow | — |
 
+## Weekly re-check, 2026-11-12 (changelog)
+
+Changelog read live on 2026-11-12: verbatim for 2.1.319–2.1.322 (latest 2.1.322, 2026-11-10, the installed version); 2.1.315–2.1.318 only as a summary, so not relied on.
+
+| # | Change | Effect on this setup | Verdict |
+|---|---|---|---|
+| 37 | 2.1.319: "Fixed a case where Bash deny and ask rules missed commands written with quoted words" | Makes the proposed force-push `ask` rule (#5) reliable for quoted arguments | follow (no change; #5 stays a proposal) |
+| 38 | 2.1.319: "Added `permissions.denyInsteadOfPrompting`" | Turns prompts into denials in terminal sessions and subagents; with `bypassPermissions` there are almost no prompts to turn | deliberately different (not set) |
+| 39 | 2.1.321: nested `.claude/skills` inside `~/.claude/plugins` no longer load; 2.1.319: with the Bash sandbox on, nested skills load only from the start folder | No sandbox, and project skills sit at each repo's root, so nothing stops loading | follow |
+| 40 | 2.1.321: PreToolUse `ask` no longer lost when another hook defers | Our hooks never return `ask` or `defer` | follow |
+
 ## Proposed global `CLAUDE.md` change (shown to the owner, not applied)
 
 One addition under `## Skill Creator` (`CLAUDE.md:39-40`) that extends that section rather than repeating it:

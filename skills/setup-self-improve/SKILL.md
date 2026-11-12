@@ -52,12 +52,13 @@ For each confirmed finding, pick one:
 
 Then the dead-weight pass:
 - `skill-usage.md` lines marked `UNUSED` → one deletion proposal listing them (or `skillOverrides: name-only` as the softer option). Skip skills the owner runs by hand on a schedule.
+- Memory notes that contradict a skill or reference on a money rule (2026-11-12: a feedback note "SL always from the anchor" next to a backtest safe set with SL from the fill) → a question for the owner, never a self-edit.
 - Rules that never fired or contradict each other (read `~/.claude/CLAUDE.md`, the task contract in `~/.claude/hooks/task-contract.py`, project `CLAUDE.md` files touched this week) → proposals.
 - Project `CLAUDE.md` over 200 lines (`docs/best-practice-audit-2026-11.md` #2) → trim at most one per run: move procedures into a skill, keep warnings verbatim.
 
 ## 4. Re-check Anthropic's docs
 
-Read `state.json` → `docs_read`. Fetch the changelog and the pages the audit cites (WebFetch or Context7; never from memory): https://code.claude.com/docs/en/changelog (or the GitHub CHANGELOG), best-practices, memory, skills, sub-agents, hooks, settings. Compare with `claude --version`. Record new or changed recommendations that affect this setup as rows appended to the latest `docs/best-practice-audit-*.md` (with the date read), apply the ones the guards allow, and write `docs_read` back.
+Read `state.json` → `docs_read`. Fetch the changelog and the pages the audit cites (WebFetch or Context7; never from memory): https://code.claude.com/docs/en/changelog (or the GitHub CHANGELOG), best-practices, memory, skills, sub-agents, hooks, settings. Compare with `claude --version`. Record new or changed recommendations that affect this setup as rows appended to the latest `docs/best-practice-audit-*.md` (with the date read), apply the ones the guards allow, and write `docs_read` back. The changelog page is ~1.2M characters and one WebFetch returns only the newest ~40k verbatim (about three versions); ask for the versions newer than `docs_read` and say which range was read verbatim (2026-11-12 run).
 
 ## 5. Verify and sync
 
