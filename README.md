@@ -9,9 +9,9 @@ My real rules, four lean agents, a prompt hook, reviewer evals, and the A/B kit 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 ![Claude Code](https://img.shields.io/badge/Claude%20Code-rules%20%2B%20agents%20%2B%20hook-d97757)
 ![Status](https://img.shields.io/badge/status-experimental-orange)
-![Hook tests](https://img.shields.io/badge/hook%20tests-10%20cases-brightgreen)
+![Tests](https://img.shields.io/badge/tests-38%20cases-brightgreen)
 
-[How it works](#how-it-works) · [Results](#results-read-this-first) · [Install](#install) · [Task contract hook](#task-contract-hook) · [Reviewer evals](#reviewer-evals) · [Benchmark kit](#benchmark-kit) · [Українською](#українською)
+[How it works](#how-it-works) · [Results](#results-read-this-first) · [Install](#install) · [Task contract hook](#task-contract-hook) · [Self-improvement](#self-improvement-loop) · [Reviewer evals](#reviewer-evals) · [Benchmark kit](#benchmark-kit) · [Українською](#українською)
 
 </div>
 
@@ -51,6 +51,7 @@ flowchart LR
 | [`agents/critical-reviewer.md`](agents/critical-reviewer.md) | A fresh read-only reviewer for diffs that can move money. It loads real failure classes from memory |
 | [`evals/`](evals/run.py) and [`skills/reviewer-evals`](skills/reviewer-evals/SKILL.md) | Each confirmed incident becomes a failure class and a test of the reviewer |
 | [`skills/memory-staleness-audit`](skills/memory-staleness-audit/SKILL.md) | A weekly lint of the memory notes: old hosts and accounts stated as current, relative dates, overdue rechecks. It marks stale notes and never deletes them. The same script lints a markdown vault (`index.md`, subfolders, wikilinks) and can require a date and source on every fact and refuse card numbers and passwords |
+| [`skills/setup-self-improve`](skills/setup-self-improve/SKILL.md) and [`hooks/self-improve-log.py`](hooks/self-improve-log.py) | The setup maintains itself: two hooks log which skills are used and which sessions ran, and a weekly run reads the week, turns the owner's corrections into skills and memory, proposes deleting dead skills, and re-checks Anthropic's docs. It creates and edits alone and deletes only after a yes |
 | [`assistant-vault/`](assistant-vault/CLAUDE.md) and [`skills/life-interview`](skills/life-interview/SKILL.md) | A personal assistant kept apart from code memory: a folder with its own `CLAUDE.md`, a markdown vault that opens in Obsidian, and a week-long interview that fills it, one life area a day, with a checklist of covered topics |
 
 An agent is added **only** for truly independent parts (a broad audit, a large migration), for noisy output returned as a short summary, or as a fresh reviewer. A subagent on the same task gives no smarter answer and starts cold.
@@ -91,6 +92,7 @@ Full tables, earlier versions, and the measurement mistakes made along the way: 
 │   ├── settings.example.json       # hooks block for settings.json
 │   └── reviewer-memory.example.md  # failure classes for the reviewer
 ├── hooks/task-contract.py          # UserPromptSubmit: adds the task contract
+├── hooks/self-improve-log.py       # PreToolUse(Skill) + SessionEnd/Stop: usage and session logs
 ├── agents/
 │   ├── scout.md                    # haiku/medium — mechanical collection, no judgement
 │   ├── reviewer.md                 # sonnet/high — read-only review, ordinary code
@@ -102,12 +104,16 @@ Full tables, earlier versions, and the measurement mistakes made along the way: 
 ├── skills/reviewer-evals/SKILL.md  # incident → failure class → eval case
 ├── skills/memory-staleness-audit/  # lint script + skill: find and mark stale memory notes
 ├── skills/life-interview/          # one interview day: ask, write dated facts, tick the checklist
+├── skills/setup-self-improve/      # weekly: learn from sessions, update skills, propose deletions
 ├── assistant-vault/                # template: CLAUDE.md + empty vault (index, profile, people, areas, log, sources)
 ├── benchmark/                      # blind A/B kit for two configs
-├── tests/test_task_contract.py     # 10 cases, runs the hook as Claude Code does
+├── tests/test_task_contract.py     # 18 cases, runs the hook as Claude Code does
+├── tests/test_self_improve_log.py  # 13 cases incl. malformed input and the 50 ms budget
+├── tests/test_collect.py           # 7 checks of the weekly run's collector on a fake HOME
 └── docs/
     ├── RESULTS.md                  # every run, with caveats
     ├── SOURCES.md                  # what the rules are based on
+    ├── best-practice-audit-2026-11.md  # the setup vs Anthropic's docs, read 2026-11-12
     └── context-budget.md           # what loads before the first message, and the trim
 ```
 
@@ -122,12 +128,14 @@ cd claude-adaptive-orchestration
 mkdir -p ~/.claude/agents ~/.claude/hooks ~/.claude/skills ~/.claude/evals/critical-reviewer/cases
 mkdir -p ~/.claude/agent-memory/critical-reviewer
 cp agents/*.md ~/.claude/agents/
-cp hooks/task-contract.py ~/.claude/hooks/
-cp -R skills/reviewer-evals skills/memory-staleness-audit ~/.claude/skills/
+cp hooks/task-contract.py hooks/self-improve-log.py ~/.claude/hooks/
+cp -R skills/reviewer-evals skills/memory-staleness-audit skills/setup-self-improve ~/.claude/skills/
 cp evals/run.py ~/.claude/evals/critical-reviewer/
 cp config/reviewer-memory.example.md ~/.claude/agent-memory/critical-reviewer/MEMORY.md
 
-python3 tests/test_task_contract.py   # expect: 10 cases, 0 failures
+python3 tests/test_task_contract.py    # expect: 18 cases, 0 failures
+python3 tests/test_self_improve_log.py # expect: 13 cases, 0 failed
+python3 tests/test_collect.py          # expect: 7 checks, 0 failed
 ```
 
 Then:
@@ -224,11 +232,28 @@ The rules lean on Anthropic's [When to use multi-agent systems](https://claude.c
 
 Full list with notes: [docs/SOURCES.md](docs/SOURCES.md).
 
+## Self-improvement loop
+
+The owner does not want to tune the setup by hand, so it learns from the work:
+
+| Piece | When | What |
+|---|---|---|
+| [`hooks/self-improve-log.py`](hooks/self-improve-log.py) on `PreToolUse` / `Skill` | every skill call | appends `{date, skill, cwd}` to `~/.claude/self-improve/skill-usage.jsonl` |
+| the same hook on `SessionEnd` and `Stop` | end of a session, or each turn in the desktop app where sessions rarely end | appends `{date, cwd, transcript_path}` to `sessions.jsonl`, one line per session |
+| in-session rule (`CLAUDE.md`, Skill Creator) | end of a task where the owner corrected the approach | writes the lesson in that turn: the skill that misled, or a feedback memory |
+| [`skills/setup-self-improve`](skills/setup-self-improve/SKILL.md), a weekly scheduled task | Monday, after the memory audit | reads the week's transcripts as digests (sonnet readers), updates or creates skills (max 5), flags skills unused for 30+ days, re-checks Anthropic's docs, syncs this repo, reports with up to 4 questions as buttons |
+
+What it may do alone: create and edit skills, project `CLAUDE.md`, agents, hooks, memory, each with a backup. What waits for a yes: any deletion, any edit to the global `CLAUDE.md`, any new permission prompt, and anything that would weaken a safety rule. The hooks make no model call, run in about 25 ms and exit 0 on any error. Typed `/skill` commands are counted from transcripts, not from a second hook.
+
+Where the setup stands against Anthropic's docs, row by row with links and dates: [docs/best-practice-audit-2026-11.md](docs/best-practice-audit-2026-11.md).
+
 ## Українською
 
 **Що це.** Так у мене налаштований Claude Code. Одна сесія за замовчуванням, доказ перед словом «готово» і короткі промпти: правила додає hook, а модель сама шукає факти й питає лише те, що знає тільки власник.
 
 **Що всередині.** Мої правила `CLAUDE.md` без приватних деталей, hook із контрактом задачі, чотири агенти, тести рецензента на реальних інцидентах і кит для сліпого A/B-порівняння конфігурацій.
+
+**Самовдосконалення.** Два hook-и записують, які скіли використовуються і які сесії були. Щопонеділка задача `setup-self-improve` читає тиждень сесій, перетворює виправлення власника на скіли й пам'ять, пропонує видалити мертві скіли і звіряє сетап із документацією Anthropic. Сама створює й редагує (з бекапом), видаляє і змінює глобальний `CLAUDE.md` лише після «так».
 
 **Чесно про результат.** Що ці правила кращі за звичайну сесію, **не доведено**. Поточні короткі правила і hook ще не проходили A/B, а зменшення переробок поки не виміряно. На грошовому фіксі незалежне рев'ю прибрало єдиний HIGH-дефект ціною +10 хвилин. Кожна цифра — один прогін. Деталі в [docs/RESULTS.md](docs/RESULTS.md).
 
