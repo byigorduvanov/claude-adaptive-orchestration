@@ -1,6 +1,6 @@
 ---
 name: setup-self-improve
-description: Weekly self-improvement of the owner's Claude Code setup — reads the week's session transcripts for owner corrections, repeated procedures, questions asked twice and rules that misfired, then creates or updates skills, flags skills unused for 30+ days and conflicting rules as deletion proposals, re-checks Anthropic's Claude Code docs, backs up every edit, syncs the public setup repo and reports in Ukrainian with up to 4 questions as buttons. Use for the Monday scheduled run, and for "покращ мій сетап", "що ти навчився за тиждень", "які скіли мертві", "почисти скіли і правила", "перевір best practice Anthropic", "self-improve run".
+description: "Weekly self-improvement of the Claude Code setup from the week's transcripts: new/updated skills, dead skills and conflicting rules, Anthropic docs re-check, public repo sync. Use for the Monday run, \"покращ мій сетап\", \"що ти навчився за тиждень\", \"які скіли мертві\", \"почисти скіли і правила\"."
 ---
 
 # Setup self-improve (weekly)

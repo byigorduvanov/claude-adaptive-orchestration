@@ -71,6 +71,13 @@ transcript):
 | Before second pass | 48,226 | — |
 | Denies + shorter descriptions + `name-only` | 45,758 | only `Workflow` left the tool list |
 | + `skillListingMaxDescChars: 300` | **44,013** | skill listing 31.9k → 24.9k chars |
+| + `setup-self-improve` cut, new `claude-context-budget-probe` skill | 45,086 | listing 23.6k chars; +3.6k chars claude-mem MCP instructions that had not connected yet in probe 2 |
+
+Probe-to-probe noise: whether the claude-mem MCP server has connected before the first
+request changes the total by ~1.3k tokens (MCP instructions + deferred tool names). Compare
+components with `measure.py --compare`, not only totals.
+
+The procedure and script are the `claude-context-budget-probe` skill in this repo.
 
 Findings:
 
