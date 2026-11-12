@@ -62,15 +62,27 @@ cache_read 24,020), down from 88k (−45%). Split by character share (~2.8 chars
 | Agent types + deferred tool names | 3.0k | 8.4k |
 
 Usage over 30 days (90 sessions) showed 17 of 103 skills invoked and several app tools
-almost never called. Second pass:
+almost never called. Second pass, each step checked in a fresh probe session (a new app
+session told to answer `ok`, then its first `usage` and `api-request-shape` read from the
+transcript):
 
-- `permissions.deny` += `Workflow` (re-enable for ultracode), `mcp__visualize__show_widget`,
-  `mcp__visualize__read_me`, `mcp__terminal__read_terminal`, `mcp__ccd_session__mark_chapter`,
-  `mcp__ccd_session__hand_off_to_session`, `mcp__ccd_session__read_widget_context` (~4k tokens).
-- Personal skill descriptions cut from ~450–900 to ~220–280 characters, keeping the main
-  Ukrainian trigger phrases (~8k chars, ~3k tokens).
-- Seven rarely used research skills set to `name-only` in `skillOverrides`.
-- Still large and fixed: app system prompt, app task-list tools (`wrap_up`, `update_plan`).
+| Probe | First request | Change |
+|---|---|---|
+| Before second pass | 48,226 | — |
+| Denies + shorter descriptions + `name-only` | 45,758 | only `Workflow` left the tool list |
+| + `skillListingMaxDescChars: 300` | **44,013** | skill listing 31.9k → 24.9k chars |
+
+Findings:
+
+- `permissions.deny` removes CLI tools (`Workflow` worked) but **not** the tools the desktop
+  app injects (`mcp__ccd_*`, `mcp__visualize__*`, `mcp__terminal__*`), not even with a
+  server-level rule like `mcp__visualize`. No app setting turns them off either.
+- The skill listing has a fixed budget (`skillListingBudgetFraction`, default 1% of the
+  window). Shortening our own descriptions did not shrink it: the freed space was refilled
+  with the full descriptions of plugin skills (`anthropic-skills:*`, `claude-mem:*`) that
+  had been name-only before. What does shrink it is `skillListingMaxDescChars` (per-skill
+  cap, default 1536); 300 fits every rewritten description.
+- Kept: `Workflow` deny (re-enable for ultracode), 29 descriptions cut to ~220–280 chars,
+  seven research skills `name-only`.
+- Still large and fixed: app system prompt (~31k chars) and app-injected tools.
 - The task-contract hook adds ~0.5k tokens to every user message, not once per session.
-
-Not measured yet: the first request of a new session after the second pass.
