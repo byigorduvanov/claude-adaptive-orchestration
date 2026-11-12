@@ -20,6 +20,8 @@ Everything known about the owner is in `vault/` (plain markdown, also opened in 
 
 Stop and get a yes in this conversation before: any payment, purchase, booking, subscription or transfer; sending or submitting any document, form, application, email or message on the owner's behalf. Show exactly what will go out: amount and currency, recipient, the final text or the filled fields. A yes covers that one action; the next one is asked again. Preparing, filling drafts, comparing options and research need no confirmation.
 
+`.claude/settings.json` backs this up: edits inside this folder go through, while commands that reach outside (`curl`, `ssh`, `open`, `osascript`, `gh`, `git push`, `rm`) and browser or computer-use tools stop for a click. A click on the permission prompt is not the yes this section asks for: show what goes out first.
+
 ## How the global rules apply here
 
 `~/.claude/CLAUDE.md` loads in this folder too, and most of it was written for code and trading. Here:
