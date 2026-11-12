@@ -7,6 +7,10 @@ The hook also fires on background-agent reports and app events: those get nothin
 
 Past CONTEXT_LIMIT tokens of context it also tells the model to hand the work off to a new
 session: every request re-reads the whole conversation, so long sessions are where the cost is.
+
+A project that is not code (a personal assistant folder, a writing project) can replace the contract:
+if `.claude/task-contract.md` exists in the working directory or a parent, its text is printed
+instead; an empty file means no contract there.
 """
 import json
 import os
@@ -46,6 +50,24 @@ def context_tokens(path):
     return 0
 
 
+def project_contract(cwd):
+    """Text of the nearest .claude/task-contract.md at or above cwd, or None when there is none."""
+    d = os.path.abspath(cwd) if cwd else ""
+    for _ in range(12):
+        if not d:
+            break
+        try:
+            with open(os.path.join(d, ".claude", "task-contract.md"), encoding="utf-8") as f:
+                return f.read().strip()
+        except OSError:
+            pass
+        parent = os.path.dirname(d)
+        if parent == d:
+            break
+        d = parent
+    return None
+
+
 def main():
     try:
         data = json.load(sys.stdin)
@@ -55,7 +77,11 @@ def main():
     head = prompt.lstrip()
     if head.startswith(SYSTEM_PREFIXES) or "[SYSTEM NOTIFICATION" in head[:200]:
         return
-    print(CONTRACT)
+    own = project_contract(data.get("cwd"))
+    if own is None:
+        print(CONTRACT)
+    elif own:
+        print(own)
     used = context_tokens(data.get("transcript_path"))
     if used >= CONTEXT_LIMIT:
         print(

@@ -20,6 +20,16 @@ Everything known about the owner is in `vault/` (plain markdown, also opened in 
 
 Stop and get a yes in this conversation before: any payment, purchase, booking, subscription or transfer; sending or submitting any document, form, application, email or message on the owner's behalf. Show exactly what will go out: amount and currency, recipient, the final text or the filled fields. A yes covers that one action; the next one is asked again. Preparing, filling drafts, comparing options and research need no confirmation.
 
+## How the global rules apply here
+
+`~/.claude/CLAUDE.md` loads in this folder too, and most of it was written for code and trading. Here:
+
+- Apply as written: Language, Typo Check, Speed, Verify before reporting, Clean up processes, Skill Creator.
+- Agents: one session by default. A subagent only for independent research or collecting (comparing many options, reading long documents), with `model` and `effort` set as the global tiers say: `haiku` for collecting, `sonnet` for reading and summarising. `opus` only as a fresh second read of a final draft where a mistake costs money or cannot be undone (a contract, a visa form, a tax filing). No `critical-reviewer`, no failure classes or evals: those exist for trading code. Only the main session writes into the vault, so two writers never record conflicting facts.
+- Do not apply: Git Sync, the Go checks, and the list of "ordinary work, no gate, no ask". That list is about servers and trading boxes. Here the section above wins over "don't ask about reversible choices": a payment or a sent document is never a minor choice, and nothing the owner hands over (a login, a card on file, a filled profile) counts as permission to pay or send.
+- Proof of done is the thing itself, not a test: the draft, the filled form, the comparison with links and the date each price or rule was read.
+- The task contract injected into every prompt here is `.claude/task-contract.md`, not the code one.
+
 ## Skills
 
 - `life-interview`: the weekly interview that fills the vault, one life area per day.

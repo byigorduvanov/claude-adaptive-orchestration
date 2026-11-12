@@ -47,5 +47,21 @@ for prompt, path, expected in CTX:
     if r.returncode != 0 or got != expected:
         failures += 1
         print("FAIL context", prompt, path, "exit", r.returncode, repr(r.stdout[-80:]))
-print(f"{len(CASES) + len(CTX)} cases, {failures} failures")
+# per-project contract: .claude/task-contract.md at or above cwd replaces the code contract
+proj = tempfile.mkdtemp(); os.makedirs(os.path.join(proj, ".claude")); os.makedirs(os.path.join(proj, "sub"))
+empty = tempfile.mkdtemp(); os.makedirs(os.path.join(empty, ".claude"))
+open(os.path.join(proj, ".claude", "task-contract.md"), "w").write("Own contract\n1. rule\n")
+open(os.path.join(empty, ".claude", "task-contract.md"), "w").write("")
+OWN = [
+    (os.path.join(proj, "sub"), "Own contract\n1. rule\n"),
+    (empty, ""),
+    (tempfile.mkdtemp(), None),
+]
+for cwd, expected in OWN:
+    r = subprocess.run([sys.executable, HOOK], input=json.dumps({"prompt": "fix this", "cwd": cwd}), capture_output=True, text=True)
+    ok = r.stdout.startswith("Task contract") if expected is None else r.stdout == expected
+    if r.returncode != 0 or not ok:
+        failures += 1
+        print("FAIL project contract", cwd, "exit", r.returncode, repr(r.stdout[:60]))
+print(f"{len(CASES) + len(CTX) + len(OWN)} cases, {failures} failures")
 sys.exit(1 if failures else 0)

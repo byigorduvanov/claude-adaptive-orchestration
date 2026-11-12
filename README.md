@@ -149,6 +149,8 @@ cp -R skills/life-interview ~/assistant/.claude/skills/
 python3 ~/.claude/skills/memory-staleness-audit/scripts/memory_lint.py ~/assistant/vault   # errors=0
 ```
 
+The folder carries its own `.claude/task-contract.md`: the hook prints it there instead of the code contract, and `CLAUDE.md` says which global rules apply to an assistant and which are for code only.
+
 Open `~/assistant/vault` in Obsidian as a vault, start Claude Code in `~/assistant` and say "interview me". Each day covers one area; answers go straight into the files as `- fact (YYYY-MM-DD, source)`.
 
 ## Task contract hook

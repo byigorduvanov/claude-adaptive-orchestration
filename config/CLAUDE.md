@@ -5,6 +5,9 @@ My real `~/.claude/CLAUDE.md`. Left out: the section with private operational de
 ## Language
 Reply in the language of my latest message. Code, identifiers, commands, logs, error messages, API and library names, plans and code comments stay in English unless the project clearly uses another language. When I write in Ukrainian: discuss and summarise in Ukrainian, keep technical artifacts and exact terms in English. AskUserQuestion text, labels and descriptions follow the conversation language too.
 
+## Personal assistant
+Everyday tasks (tickets, documents, personal research) belong to the assistant folder `~/assistant`, not to code projects. Facts about me live in its `vault/` (start from `vault/index.md`): read it before asking me something personal, and write new personal facts there, never into a code project's memory.
+
 ## Subagent model: choose it, never inherit by default
 Every Agent / Workflow `agent()` call sets `model` and `effort` explicitly; omitting them inherits this session's most expensive settings.
 - `haiku` / `medium` — mechanical, no judgement: grep/list/collect, file listings, formatting, one-line lookups.
