@@ -1,0 +1,7 @@
+{
+  "index_exempt": ["log/20*.md"],
+  "fact_provenance": true,
+  "forbid_secrets": true,
+  "superseded": [],
+  "eras": []
+}

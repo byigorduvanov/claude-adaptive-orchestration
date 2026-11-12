@@ -1,26 +1,33 @@
 #!/usr/bin/env python3
-"""Deterministic lint for a Claude Code auto-memory directory.
+"""Deterministic lint for a Claude Code auto-memory directory or a markdown vault.
 
 Finds candidates for stale memory; it does not judge meaning. A model (or a
 person) reads the findings and decides. No network, no writes to the notes.
 
 Usage:
-  memory_lint.py <memory_dir> [--json out.json] [--today YYYY-MM-DD] [--max-lines N]
+  memory_lint.py <memory_dir> [--index NAME] [--json out.json] [--today YYYY-MM-DD] [--max-lines N]
+
+The index is MEMORY.md, or index.md when there is no MEMORY.md (a vault), or
+whatever --index names. Notes are read recursively; hidden directories
+(.obsidian, .git, .trash) are skipped.
 
 Reads two optional files from <memory_dir>:
-  .memory-lint.json           project config (superseded identifiers, eras)
+  .memory-lint.json           project config (superseded identifiers, eras,
+                              index_exempt globs, fact_provenance, forbid_secrets)
   .memory-lint-baseline.json  findings already reviewed and accepted
 
 Exit code: 0 = no errors, 1 = errors found, 2 = bad usage.
 """
 import argparse
 import datetime as dt
+import fnmatch
 import json
 import os
 import re
 import sys
+import urllib.parse
 
-INDEX = "MEMORY.md"
+INDEX_CANDIDATES = ("MEMORY.md", "index.md")
 INDEX_MAX_LINES = 200          # Claude Code loads the first 200 lines ...
 INDEX_MAX_BYTES = 25_000       # ... or 25 KB of MEMORY.md
 HISTORY_HEADING = re.compile(r"history|not current|superseded|pre-move|obsolete|archive", re.I)
@@ -32,6 +39,21 @@ RECHECK = re.compile(r"(?:re-?check|revisit|re-?test|review again)\s+in\s+(\d+)(
 EXPIRES = re.compile(r"expir\w*\s+(?:on\s+|at\s+)?(\d{4}-\d{2}-\d{2})", re.I)
 DATE = re.compile(r"(20\d{2})-(\d{2})-(\d{2})")
 LINK = re.compile(r"\]\(([^)#]+\.md)\)")
+WIKILINK = re.compile(r"\[\[([^\]|#]+)")
+BULLET = re.compile(r"^\s*[-*]\s+(?!\[[ xX]\]\s)\S")
+PROVENANCE = re.compile(r"\(20\d{2}-\d{2}-\d{2},\s*[^)]+\)")
+SECRET_WORD = re.compile(r"(?:password|passwd|пароль|pin[- ]?код|\bpin\b|\bcvv\b|\bcvc\b|seed phrase|сід[- ]фраз\w*)\s*[:=]\s*\S", re.I)
+CARD = re.compile(r"(?<![\d.])(?:\d[ -]?){12,18}\d(?![\d.])")
+
+
+def luhn(digits):
+    total = 0
+    for i, ch in enumerate(reversed(digits)):
+        n = int(ch)
+        if i % 2:
+            n = n * 2 - 9 if n > 4 else n * 2
+        total += n
+    return total % 10 == 0
 
 
 def parse_date(s):
@@ -70,13 +92,16 @@ def note_date(name, fm, path):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("memory_dir")
+    ap.add_argument("--index")
     ap.add_argument("--json")
     ap.add_argument("--today")
     ap.add_argument("--max-lines", type=int, default=40)
     a = ap.parse_args()
     root = a.memory_dir
-    if not os.path.isfile(os.path.join(root, INDEX)):
-        print(f"no {INDEX} in {root}", file=sys.stderr)
+    candidates = (a.index,) if a.index else INDEX_CANDIDATES
+    INDEX = next((c for c in candidates if os.path.isfile(os.path.join(root, c))), None)
+    if INDEX is None:
+        print(f"no {' or '.join(candidates)} in {root}", file=sys.stderr)
         return 2
     today = parse_date(a.today) if a.today else dt.date.today()
 
@@ -97,7 +122,12 @@ def main():
             return
         findings.append({"severity": sev, "check": check, "file": file, "line": line, "msg": msg, "key": k})
 
-    files = sorted(f for f in os.listdir(root) if f.endswith(".md"))
+    files = []
+    for cur, dirs, names in os.walk(root):
+        dirs[:] = sorted(d for d in dirs if not d.startswith("."))
+        rel = os.path.relpath(cur, root)
+        files += [n if rel == "." else f"{rel}/{n}" for n in names if n.endswith(".md")]
+    files.sort()
     texts = {f: open(os.path.join(root, f), encoding="utf-8", errors="replace").read() for f in files}
 
     # 1. index: size, broken links, notes nothing links to
@@ -107,20 +137,36 @@ def main():
         add("error", "index-size", INDEX, 0, f"{n_lines} lines / {n_bytes} B: past {INDEX_MAX_LINES} lines or {INDEX_MAX_BYTES} B the rest is not loaded")
     elif n_lines > 0.8 * INDEX_MAX_LINES or n_bytes > 0.8 * INDEX_MAX_BYTES:
         add("info", "index-size", INDEX, 0, f"{n_lines} lines / {n_bytes} B: over 80% of the load limit")
-    indexes = [INDEX] + [f for f in files if f.startswith("index-")]
+    indexes = [INDEX] + [f for f in files if f != INDEX and os.path.basename(f).startswith("index-")]
+    by_stem = {}
+    for f in files:
+        by_stem.setdefault(os.path.basename(f)[:-3], f)
+    exempt = cfg.get("index_exempt", [])
     linked = set()
     for ix in indexes:
+        base = os.path.dirname(ix)
         for i, line in enumerate(texts[ix].split("\n"), 1):
-            for target in LINK.findall(line):
+            for raw in LINK.findall(line):
+                if "://" in raw:
+                    continue
+                target = os.path.normpath(os.path.join(base, urllib.parse.unquote(raw))).replace(os.sep, "/")
                 linked.add(target)
                 if target not in texts:
                     add("error", "broken-link", ix, i, f"links to missing {target}", target)
+            # a [[wikilink]] may name a note not written yet, so it is never a broken link
+            for raw in WIKILINK.findall(line):
+                raw = raw.strip()
+                target = raw if raw.endswith(".md") else raw + ".md"
+                linked.add(target if target in texts else by_stem.get(os.path.basename(raw), target))
     for f in files:
-        if f not in indexes and f not in linked:
-            add("error", "unindexed", f, 0, "no index links to this note, so it is never recalled")
+        if f in indexes or f in linked or any(fnmatch.fnmatch(f, g) for g in exempt):
+            continue
+        add("error", "unindexed", f, 0, "no index links to this note, so it is never recalled")
 
     superseded = [(re.compile(s["pattern"]), s) for s in cfg.get("superseded", [])]
     eras = cfg.get("eras", [])
+    fact_provenance = cfg.get("fact_provenance", False)
+    forbid_secrets = cfg.get("forbid_secrets", False)
 
     for f in files:
         text = texts[f]
@@ -151,6 +197,16 @@ def main():
                     continue
                 add("error", "superseded", f, i,
                     f"{s['pattern']!r} is superseded since {s.get('since', '?')}: {s.get('now', 'see config')}", s["pattern"])
+            # 3a. vault rules, switched on in the config
+            if forbid_secrets:
+                if SECRET_WORD.search(line):
+                    add("error", "secret", f, i, "looks like a password, PIN or CVV: keep secrets out of the notes", "word")
+                for m in CARD.finditer(line):
+                    digits = re.sub(r"\D", "", m.group(0))
+                    if luhn(digits):
+                        add("error", "secret", f, i, f"looks like a card number ending {digits[-4:]}: keep it out of the notes", digits[-4:])
+            if fact_provenance and not is_index and BULLET.search(line) and not PROVENANCE.search(line):
+                add("error", "fact-provenance", f, i, "a fact with no '(YYYY-MM-DD, source)' cannot be aged or traced", line.strip()[:40])
             # 4. relative dates lose their meaning once the note is a day old
             if not is_index:
                 m = REL_HARD.search(line)

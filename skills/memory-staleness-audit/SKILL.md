@@ -1,6 +1,6 @@
 ---
 name: memory-staleness-audit
-description: Audit a Claude Code auto-memory directory (MEMORY.md + topic notes) and the claude-mem work state for stale facts — superseded hosts, IDs and accounts stated as current, notes from an earlier era with no context marker, relative dates, overdue "recheck in N weeks" deadlines, expired keys, todos blocked for weeks, broken or missing index links, an index past the 200-line / 25 KB load limit — then fix them without deleting anything. Use for "почисти пам'ять", "покажи застарілі записи", "перевір пам'ять на старе", "memory audit", "is my memory stale", "чому Claude діє за старою нотаткою", after a migration that changed hosts, accounts or access, and for the weekly scheduled run. Use it before trusting an old note on access or infrastructure; reach for it rather than reading notes one by one.
+description: Audit a Claude Code auto-memory directory (MEMORY.md + topic notes), a personal markdown vault (index.md + notes in subfolders, Obsidian-style) and the claude-mem work state for stale facts — superseded hosts, IDs and accounts stated as current, notes from an earlier era with no context marker, relative dates, overdue "recheck in N weeks" deadlines, expired keys, todos blocked for weeks, broken or missing index links, an index past the 200-line / 25 KB load limit — then fix them without deleting anything. Use for "почисти пам'ять", "перевір vault", "покажи застарілі записи", "перевір пам'ять на старе", "memory audit", "is my memory stale", "чому Claude діє за старою нотаткою", after a migration that changed hosts, accounts or access, and for the weekly scheduled run. Use it before trusting an old note on access or infrastructure; reach for it rather than reading notes one by one.
 ---
 
 # Memory staleness audit
@@ -15,7 +15,9 @@ Two parts, in this order: a deterministic lint that finds candidates, then judge
 python3 ~/.claude/skills/memory-staleness-audit/scripts/memory_lint.py "<memory_dir>" --json /tmp/memory-lint.json
 ```
 
-`<memory_dir>` is `~/.claude/projects/<project-key>/memory`, where the key is the working directory with `/` replaced by `-` (`/Users/me/work/app` → `-Users-me-work-app`). Exit 0 means no errors, 1 means errors, 2 means the directory has no `MEMORY.md`.
+`<memory_dir>` is `~/.claude/projects/<project-key>/memory`, where the key is the working directory with `/` replaced by `-` (`/Users/me/work/app` → `-Users-me-work-app`). Exit 0 means no errors, 1 means errors, 2 means the directory has no index.
+
+The same script lints a markdown vault: pass the vault directory. The index is `MEMORY.md`, or `index.md` when there is no `MEMORY.md`, or the file `--index` names. Notes are read from subfolders too (hidden ones such as `.obsidian` are skipped), any `index-*.md` in any folder counts as a sub-index, links are resolved relative to the index that holds them, and `[[wikilinks]]` count as links.
 
 It prints one line per finding and a summary line `notes=… errors=… info=…`; the full list is in the JSON. Checks:
 
@@ -30,6 +32,8 @@ It prints one line per finding and a summary line `notes=… errors=… info=…
 | `frontmatter` | error | no `name`, `description` or `type` |
 | `era` | info | the note predates a cutover named in the config, mentions things from before it, and has no context marker |
 | `undated` | info | no absolute date anywhere, so the note cannot be aged |
+| `fact-provenance` | error | config `"fact_provenance": true`: a bullet in a note does not end in `(YYYY-MM-DD, source)` (checkbox lines are exempt) |
+| `secret` | error | config `"forbid_secrets": true`: a line looks like a password, PIN, CVV or a card number (Luhn-valid) |
 
 A line is exempt from `superseded` when it sits under a heading containing "history", "not current", "superseded", "pre-move", "obsolete" or "archive", when the file carries a `Context note (added YYYY-MM-DD)` banner, or when the line itself says so ("superseded", "retired", "was", "old").
 
@@ -71,7 +75,7 @@ Call claude-mem `work_state_read`. An open item is stale when it has not moved f
 }
 ```
 
-Whenever a host, IP, instance ID, account, key or permission changes — during this audit or any other task — add the old value to `superseded` with what replaced it. Add an `era` when access or infrastructure changes wholesale. A migration that is not recorded here is invisible to every later run.
+Whenever a host, IP, instance ID, account, key or permission changes — during this audit or any other task — add the old value to `superseded` with what replaced it. Add an `era` when access or infrastructure changes wholesale. Three more keys suit a personal vault: `"fact_provenance": true` and `"forbid_secrets": true` switch on the two checks above, and `"index_exempt": ["log/20*.md"]` lists globs of notes that need no index line (daily logs). A migration that is not recorded here is invisible to every later run.
 
 ## 5. Report
 

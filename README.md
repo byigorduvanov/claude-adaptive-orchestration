@@ -50,7 +50,8 @@ flowchart LR
 | [`config/CLAUDE.md`](config/CLAUDE.md) | My global rules: one session by default, model and effort per agent, proof before "done" |
 | [`agents/critical-reviewer.md`](agents/critical-reviewer.md) | A fresh read-only reviewer for diffs that can move money. It loads real failure classes from memory |
 | [`evals/`](evals/run.py) and [`skills/reviewer-evals`](skills/reviewer-evals/SKILL.md) | Each confirmed incident becomes a failure class and a test of the reviewer |
-| [`skills/memory-staleness-audit`](skills/memory-staleness-audit/SKILL.md) | A weekly lint of the memory notes: old hosts and accounts stated as current, relative dates, overdue rechecks. It marks stale notes and never deletes them |
+| [`skills/memory-staleness-audit`](skills/memory-staleness-audit/SKILL.md) | A weekly lint of the memory notes: old hosts and accounts stated as current, relative dates, overdue rechecks. It marks stale notes and never deletes them. The same script lints a markdown vault (`index.md`, subfolders, wikilinks) and can require a date and source on every fact and refuse card numbers and passwords |
+| [`assistant-vault/`](assistant-vault/CLAUDE.md) and [`skills/life-interview`](skills/life-interview/SKILL.md) | A personal assistant kept apart from code memory: a folder with its own `CLAUDE.md`, a markdown vault that opens in Obsidian, and a week-long interview that fills it, one life area a day, with a checklist of covered topics |
 
 An agent is added **only** for truly independent parts (a broad audit, a large migration), for noisy output returned as a short summary, or as a fresh reviewer. A subagent on the same task gives no smarter answer and starts cold.
 
@@ -100,6 +101,8 @@ Full tables, earlier versions, and the measurement mistakes made along the way: 
 │   └── cases/example/case.json     # the case format
 ├── skills/reviewer-evals/SKILL.md  # incident → failure class → eval case
 ├── skills/memory-staleness-audit/  # lint script + skill: find and mark stale memory notes
+├── skills/life-interview/          # one interview day: ask, write dated facts, tick the checklist
+├── assistant-vault/                # template: CLAUDE.md + empty vault (index, profile, people, areas, log, sources)
 ├── benchmark/                      # blind A/B kit for two configs
 ├── tests/test_task_contract.py     # 10 cases, runs the hook as Claude Code does
 └── docs/
@@ -134,6 +137,19 @@ Then:
 3. **Tune** — replace the failure classes with your own incidents.
 
 New sessions pick up `CLAUDE.md` automatically.
+
+### Personal assistant vault (optional)
+
+A separate folder for everyday tasks, so personal facts never mix with code memory:
+
+```bash
+mkdir -p ~/assistant/.claude/skills
+cp -R assistant-vault/. ~/assistant/
+cp -R skills/life-interview ~/assistant/.claude/skills/
+python3 ~/.claude/skills/memory-staleness-audit/scripts/memory_lint.py ~/assistant/vault   # errors=0
+```
+
+Open `~/assistant/vault` in Obsidian as a vault, start Claude Code in `~/assistant` and say "interview me". Each day covers one area; answers go straight into the files as `- fact (YYYY-MM-DD, source)`.
 
 ## Task contract hook
 
