@@ -41,7 +41,7 @@ Raw notes, with one quoted line per recommendation (about 105 rows), and a copy 
 | 2 | Same limit for project files | Two trading-service repos: 228 and 226 lines; their worktree copies up to 504 | gap → weekly | Trimming these risks dropping operational preconditions, so it waits for a careful per-repo pass: move procedures into skills and keep the warnings verbatim |
 | 3 | Only what Claude cannot derive from code: verify commands, misleading spots, decisions, "anything you've had to correct twice" (BP) | Global rules are about behaviour and proof, not architecture | follow | The new in-session rule (#30) turns "corrected twice" into a lesson written that same turn |
 | 4 | No IMPORTANT / ALL CAPS emphasis, which makes rules over-apply (BP) | `CLAUDE.md:53` "ONE message", `:62` "NOT proof"; bold on the one ask-first exception (`:46`) | deliberately different | The two capitals guard the two failures that cost the most (serial tool calls, a false "done"); the bold marks the single safety exception. Re-check on the next model, as `CLAUDE.md` Orchestration says |
-| 5 | A rule that must hold every time belongs in a hook or deny rule; CLAUDE.md is for guidelines (BP, MEM) | Force-push and deletion "ask first" live only in `CLAUDE.md:46` | gap → proposal | One question for the owner: add `ask` rules for `git push --force*` / `-f*` (ask rules still prompt in bypass mode, PRM). An earlier `PreToolUse` force-push guard was removed on purpose (README "Removed"), so this is the owner's call, not applied alone |
+| 5 | A rule that must hold every time belongs in a hook or deny rule; CLAUDE.md is for guidelines (BP, MEM) | Force-push and deletion "ask first" live only in `CLAUDE.md:46` | declined by the owner 2026-11-12 | Asked: add `ask` rules for `git push --force*` / `-f*` (ask rules still prompt in bypass mode, PRM). An earlier `PreToolUse` force-push guard was removed on purpose (README "Removed"), so this is the owner's call, not applied alone |
 | 6 | `.claude/rules/*.md` with `paths:` for rules that apply to one part of the tree (MEM) | No rules directories; the trading-workspace operations block sits in the global file (`CLAUDE.md:42-47`) | deliberately different | That block also governs skills written anywhere (no gates, keep preconditions), and moving it needs a global edit. Revisit if the global file passes 120 lines |
 | 7 | MEMORY.md loads only the first 200 lines / 25 KB (MEM) | `memory_lint.py` checks `index-size` weekly; the main project's `MEMORY.md` is 33 lines | follow | — |
 | 8 | Contradictory instructions are picked arbitrarily; audit with `/doctor prompt-audit` (MEM) | Not run | gap → weekly | Added to the `setup-self-improve` checklist: look for rules that conflict or never fired |
@@ -86,7 +86,7 @@ Raw notes, with one quoted line per recommendation (about 105 rows), and a copy 
 
 | # | Anthropic recommends | We do | Verdict | Fix |
 |---|---|---|---|---|
-| 30 | Turn "anything you've had to correct twice" into a written instruction (BP); structured notes outside the context window (CE) | Lessons were saved only when the owner asked, or by the Skill Creator rule | gap → proposal (global CLAUDE.md, shown as a diff) + fixed (hooks, weekly skill) | `self-improve-log.py` hooks, `setup-self-improve` skill + weekly task, and the in-session rule below |
+| 30 | Turn "anything you've had to correct twice" into a written instruction (BP); structured notes outside the context window (CE) | Lessons were saved only when the owner asked, or by the Skill Creator rule | gap → fixed (hooks, weekly skill; global CLAUDE.md line applied after the owner's yes) | `self-improve-log.py` hooks, `setup-self-improve` skill + weekly task, and the in-session rule below |
 | 31 | `/clear` between unrelated tasks; stale context costs on every message (CST) | `task-contract.py` tells the model to hand off past 150k tokens | follow | — |
 | 32 | Invoked skills survive compaction capped at 5,000 tokens each, 25,000 total; key instructions at the top of SKILL.md (CTX) | Hazards and preconditions sit at the top of the long skills (the backtest skill's "Hazards" start at line 23) | follow | — |
 | 33 | `claude --bare -p` for scripted calls (HL) | `benchmark/run_arm.sh` runs plain `claude -p` | deliberately different | The benchmark measures the whole setup (hooks, skills, CLAUDE.md); `--bare` would remove the thing under test |
@@ -105,7 +105,7 @@ Changelog read live on 2026-11-12: verbatim for 2.1.319–2.1.322 (latest 2.1.32
 | 39 | 2.1.321: nested `.claude/skills` inside `~/.claude/plugins` no longer load; 2.1.319: with the Bash sandbox on, nested skills load only from the start folder | No sandbox, and project skills sit at each repo's root, so nothing stops loading | follow |
 | 40 | 2.1.321: PreToolUse `ask` no longer lost when another hook defers | Our hooks never return `ask` or `defer` | follow |
 
-## Proposed global `CLAUDE.md` change (shown to the owner, not applied)
+## Global `CLAUDE.md` change (shown to the owner, applied after their yes)
 
 One addition under `## Skill Creator` (`CLAUDE.md:39-40`) that extends that section rather than repeating it:
 
@@ -115,4 +115,4 @@ One addition under `## Skill Creator` (`CLAUDE.md:39-40`) that extends that sect
 +When I corrected your approach during a task, write the lesson down in that same turn, before the final message: update the skill that led you wrong, or save a feedback memory (what I said, why, how to apply). A correction I had to make twice becomes a skill or rule line. Never weaken a safety rule this way (money paths, deletion, force-push, retired hosts): propose that instead. The weekly `setup-self-improve` run catches what a session missed.
 ```
 
-Status: shown to the owner on 2026-11-12; applied only after their yes.
+Status: shown to the owner as this diff on 2026-11-12; the owner chose "apply"; applied the same day (backup `~/.claude/self-improve/backups/2026-11-12/CLAUDE.md`). The force-push `ask` rule (#5) was declined: it stays text in `CLAUDE.md`.

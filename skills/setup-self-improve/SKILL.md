@@ -12,7 +12,7 @@ Paths: state in `~/.claude/self-improve/` (`skill-usage.jsonl` and `sessions.jso
 ## Guards (read before changing anything)
 
 - **Allowed alone**, with a backup and a line in the report: new skills, edits to skills, project `CLAUDE.md` / `.claude/rules/`, agents, hooks and their tests, memory notes.
-- **Proposals only** (AskUserQuestion, applied after a yes): deleting or disabling a skill, rule, agent, hook or memory note; any edit to `~/.claude/CLAUDE.md`; any new permission prompt.
+- **Proposals only** (asked in the report, applied after a yes): deleting or disabling a skill, rule, agent, hook or memory note; any edit to `~/.claude/CLAUDE.md`; any new permission prompt.
 - **Never weaken a safety rule** by self-edit — money paths, payments, order size, deletion, force-push, retired hosts, the "keep operational preconditions verbatim" rule. Such a change is always a proposal, even when it looks like cleanup.
 - A rule or skill section you create cites its evidence: the session id(s) or digest file it came from.
 - At most 5 new skills per run. Prefer updating an overlapping skill over adding one.
@@ -63,7 +63,7 @@ Read `state.json` → `docs_read`. Fetch the changelog and the pages the audit c
 ## 5. Verify and sync
 
 ```bash
-cd <this repo> && python3 tests/test_task_contract.py && python3 tests/test_self_improve_log.py
+cd <this repo> && python3 tests/test_task_contract.py && python3 tests/test_self_improve_log.py && python3 tests/test_collect.py
 python3 ~/.claude/skills/memory-staleness-audit/scripts/memory_lint.py ~/.claude/projects/<main-project-key>/memory
 ```
 
@@ -80,4 +80,4 @@ Short and in this order:
 4. **Не зміг вирішити** — what needs the owner's facts.
 5. Proof: the test and lint summary lines, `git ls-remote` hash.
 
-Then **one AskUserQuestion with up to 4 questions** — deletion proposals, global `CLAUDE.md` diffs (show the diff in the question's preview), new permission prompts. Each option says exactly what will happen. If the owner answers, apply what they approved in the same session (backup first), re-run step 5, and say what was applied. Nothing found is a valid result: say "нічого не знайдено" with the counts that prove the week was read.
+Then the questions (up to 4) — deletion proposals, global `CLAUDE.md` diffs, new permission prompts; each option says exactly what will happen. **A scheduled run has no AskUserQuestion** (2026-11-12 run: ToolSearch found no such tool), so the buttons are the end-of-turn box: call `mcp__ccd_turn__wrap_up` with the most important proposal as `ask` (in Ukrainian) and two buttons (apply / leave as is), and list the other proposals numbered in the closing message, each with its diff and what a yes does, so the owner can answer "1 так, 3 ні". When AskUserQuestion is available (a run started by hand in an open session), ask all of them in one call instead, with each diff in the option's preview. If the owner answers, apply what they approved in the same session (backup first), re-run step 5, and say what was applied. Nothing found is a valid result: say "нічого не знайдено" with the counts that prove the week was read.

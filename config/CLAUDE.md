@@ -40,6 +40,7 @@ Use Context7 MCP unasked when a task depends on the docs, setup or configuration
 
 ## Skill Creator
 After a repeatable, non-trivial procedure (judged by what you actually did), create or update a skill with `skill-creator` as part of finishing the task. First check project (`<repo>/.claude/skills/`) and personal (`~/.claude/skills/`) skills and update an overlapping one in place. Project scope for repo-specific knowledge, personal scope for cross-project habits. Skip one-offs and plain facts.
+When I corrected your approach during a task, write the lesson down in that same turn, before the final message: update the skill that led you wrong, or save a feedback memory (what I said, why, how to apply). A correction I had to make twice becomes a skill or rule line. Never weaken a safety rule this way (money paths, deletion, force-push, retired hosts): propose that instead. The weekly `setup-self-improve` run catches what a session missed.
 
 ## Typo Check
 At the end of every response, list typos found in my latest message under `**Typos:**`. No typos — omit the section.
