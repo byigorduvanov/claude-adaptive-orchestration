@@ -24,5 +24,28 @@ for stdin, expected in CASES:
     if r.returncode != 0 or got != expected or (not expected and r.stdout):
         failures += 1
         print("FAIL", stdin, "exit", r.returncode, repr(r.stdout[:40]))
-print(f"{len(CASES)} cases, {failures} failures")
+
+# context-size reminder: fires only past the limit, never on app events
+import json, tempfile
+def transcript(tokens, sidechain_tokens=None):
+    f = tempfile.NamedTemporaryFile("w", suffix=".jsonl", delete=False)
+    f.write(json.dumps({"type": "assistant", "message": {"usage": {"input_tokens": 2, "cache_creation_input_tokens": 1000, "cache_read_input_tokens": tokens - 1002}}}, separators=(",", ":")) + "\n")
+    if sidechain_tokens:
+        f.write(json.dumps({"isSidechain": True, "message": {"usage": {"input_tokens": 2, "cache_creation_input_tokens": 0, "cache_read_input_tokens": sidechain_tokens}}}, separators=(",", ":")) + "\n")
+    f.close()
+    return f.name
+CTX = [
+    ("fix this", transcript(237000), True),
+    ("fix this", transcript(90000), False),
+    ("fix this", transcript(90000, sidechain_tokens=400000), False),
+    ("fix this", "/nonexistent.jsonl", False),
+    ("<task-notification>x", transcript(237000), False),
+]
+for prompt, path, expected in CTX:
+    r = subprocess.run([sys.executable, HOOK], input=json.dumps({"prompt": prompt, "transcript_path": path}), capture_output=True, text=True)
+    got = "new session" in r.stdout and "Context is" in r.stdout
+    if r.returncode != 0 or got != expected:
+        failures += 1
+        print("FAIL context", prompt, path, "exit", r.returncode, repr(r.stdout[-80:]))
+print(f"{len(CASES) + len(CTX)} cases, {failures} failures")
 sys.exit(1 if failures else 0)
