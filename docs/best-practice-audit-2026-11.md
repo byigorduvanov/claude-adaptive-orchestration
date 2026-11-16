@@ -116,3 +116,14 @@ One addition under `## Skill Creator` (`CLAUDE.md:39-40`) that extends that sect
 ```
 
 Status: shown to the owner as this diff on 2026-11-12; the owner chose "apply"; applied the same day (backup `~/.claude/self-improve/backups/2026-11-12/CLAUDE.md`). The force-push `ask` rule (#5) was declined: it stays text in `CLAUDE.md`.
+
+## Weekly re-check, 2026-11-16 (changelog)
+
+Changelog read live on 2026-11-16: verbatim for 2.1.325 (2026-11-13) and 2.1.323 (2026-11-12) up to its bug-fix list; 2.1.324 is not on the page. Installed: 2.1.323.
+
+| # | Change | Effect here | Verdict |
+|---|---|---|---|
+| 41 | 2.1.325: "Changed scheduled tasks and `/loop` to ask before running a skill that declares `allowed-tools` or hooks; add `Skill(name)` to `permissions.allow` to run it unattended" | Could stall the four scheduled tasks. No skill here declares `allowed-tools` or `hooks` (grep of every global and project `SKILL.md`, 2026-11-16), so nothing changes; a skill that adds them later needs `Skill(name)` in `permissions.allow` | follow (no change) |
+| 42 | 2.1.325: subagents with their own model no longer moved to the plan-mode model, and file reads sized with the subagent's own model | Our explicit `model` per agent is now honoured in more cases | follow |
+| 43 | 2.1.323: `subagentStatusLine` setting removed | Not set here | follow |
+| 44 | CLI reference, `--desktop`: "Add `--continue`, or `--resume` with a session ID, to open that session in Desktop instead" (v2.1.285+) | The answer to "how do I continue that terminal session in the app" (asked 2026-11-11, four tries) is `claude --desktop --resume <session-id>` from the session's folder; Desktop → CLI is not documented in the part read | record |
