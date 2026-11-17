@@ -153,8 +153,9 @@ check("auth is broken" in out, "Response body 'Not logged in' is a failure, not 
 code, out, _ = case(None, [(30, t) for t in AUTH_FAIL] + gen_warn(5) + [(4.9, STORED_REAL)])
 check(out == "", f"auth failure, then a later generation stored -> silent (recovered) ({out[:60]})")
 # Finding 2: laptop sleep (claude-mem-2026-11-16.log, 2026-11-17 02:35:29 WARN, 02:50:35 unanswered).
-UNANSWERED = "[WARN ] [SDK   ] [session-906] Observer prompt went unanswered; preserving the claimed batch and stopping this generation {waitedMs=180000, claimed=1}"
-TRANSPORT = "[WARN ] [SESSION] [session-906] Generator paused for transport; preserving buffered work {pendingCount=0, released=0}"
+# Stall lines carry the same session as gen_warn (921); in the real 11-17 02:35 case both were session-906.
+UNANSWERED = "[WARN ] [SDK   ] [session-921] Observer prompt went unanswered; preserving the claimed batch and stopping this generation {waitedMs=180000, claimed=1}"
+TRANSPORT = "[WARN ] [SESSION] [session-921] Generator paused for transport; preserving buffered work {pendingCount=0, released=0}"
 code, out, _ = case(None, gen_warn(16) + [(1, UNANSWERED), (1, TRANSPORT)])
 check(out == "", f"generator WARN, then 'went unanswered' / 'paused for transport' -> silent, not auth ({out[:60]})")
 code, out, _ = case(None, gen_warn(30) + [(25, UNANSWERED)] + gen_warn(10))
@@ -172,5 +173,36 @@ code, out, _ = case(None, [(10, GEN_START), (10, QUOTE_GEN), (10, SDK_QUERY)])
 check(out == "", f"real generator start, WARN text only quoted in an ENQUEUED line -> silent ({out[:60]})")
 code, out, _ = case(None, gen_warn(10) + [(None, "[2099-01-01 00:00:00.000] [INFO ] [DB    ] [session-1] STORED | obsIds=[1]")])
 check("auth is broken" in out, "a future-dated STORED (quoted heredoc line) does not count -> line")
+# Review round 2 (2026-11-18).
+# Transient: Cloudflare 403 reported as "Failed to authenticate" (claude-mem-2026-11-13.log 16:47:00, session-902);
+# the next generation stored normally, so it is not a login failure.
+CF = ["[INFO ] [SDK   ] [session-902] \u2190 Response received (71 chars) {promptNumber=3} Failed to authenticate. API Error: 403 Attention Required! | Cloudflare",
+      "[ERROR] [PARSER] [session-902] SDK authentication failed; run /login to preserve queued batch {outputClass=prose, remediation=/login, preview=Failed to authenticate. API Error: 403 Attention Required! | Cloudflare}",
+      "[WARN ] [SDK_SPAWN] [session-902] Claude process exited {code=1, signal=null, pid=77230}",
+      "[WARN ] [SESSION] [session-902] Observer stopped; skipped pending inputs, awaiting fresh activity {reason=auth}"]
+code, out, _ = case(None, [(55, STORED)] + [(5, t) for t in CF])
+check(out == "", f"11-13 Cloudflare 403 'Failed to authenticate' -> silent, transient ({out[:60]})")
+code, out, _ = case(None, [(5, t.replace("403 Attention Required! | Cloudflare", "401 {\"type\":\"authentication_error\"}")) for t in CF])
+check("auth is broken" in out, "same shape with API Error 401 -> line")
+code, out, _ = case(None, [(5, CF[3])])
+check("auth is broken" in out, "'Observer stopped ... {reason=auth}' alone -> line")
+code, out, _ = case(None, [(5, t) for t in CF] + [(4, AUTH_PAUSE.replace("863", "902"))])
+check("auth is broken" in out, "a later auth pause, past the transient's own aftermath -> line")
+# Quoted heredoc lines dated in the past (a pasted log excerpt) are not events.
+code, out, _ = case(None, [(20, STORED_REAL), (5, AGENT_RUN)] + [(None, f"{stamp(10)} {AUTH_PAUSE}"), (None, f"{stamp(8)} {WARN}"), (None, f"{stamp(8)} {SDK_QUERY}")])
+check(out == "", f"past-dated quoted verdict / WARN after newer lines -> silent ({out[:60]})")
+# A stall excuses only its own session's WARN.
+OTHER_STALL = UNANSWERED.replace("session-921", "session-906")
+code, out, _ = case(None, gen_warn(10) + [(2, OTHER_STALL)])
+check("auth is broken" in out, "another session's 'went unanswered' does not excuse this WARN -> line")
+# File order, not one-second timestamps, decides what came after.
+code, out, _ = case(None, [(5, AUTH_PAUSE), (5, STORED_REAL)])
+check(out == "", "verdict then STORED in the same second -> silent")
+code, out, _ = case(None, [(5, STORED_REAL), (5, AUTH_PAUSE)])
+check("auth is broken" in out, "STORED then verdict in the same second -> line")
+# Mixed clocks (claude-mem-2026-11-11.log line 30: hook line 12:39, then worker lines 06:39): a STORED dated
+# before an earlier line still counts, so the out-of-order guard never raises an alarm.
+code, out, _ = case(None, gen_warn(20) + [(1, AGENT_RUN), (None, f"{stamp(15)} {STORED_REAL}")])
+check(out == "", f"out-of-order STORED still clears an older generator WARN -> silent ({out[:60]})")
 print(f"mem-health: {checks} checks, {failures} failed")
 sys.exit(1 if failures else 0)
