@@ -23,7 +23,7 @@ Work in one session by default. Add an agent only when evidence supports it.
 On every task message you build the workflow yourself; I will not tell you whether to use a file, agents, which agents, or how. The loop (Anthropic's, sources in the public repo `docs/anthropic-workflow.md`):
 1. Read the request, then look in code, logs, memory and git before asking anything. Name the check that will prove done.
 2. Ask only what you can't find there, all in your first reply, then work. If the task is vague or big, interview me, write my answers into the plan file, and build in a fresh session.
-3. Pick the shape and say it in 1–2 lines: what proves done, what runs at once, what is expensive to get wrong.
+3. Pick the shape and say it in 1–2 lines: what proves done, what runs at once, what is expensive to get wrong. For research, a backtest or a build, also the scope you assume (period, data sources, metric, repo and path), so the owner can correct it in one word before the work starts.
    - Solo is the default.
    - Use a subagent for a wide search, noisy output or a fresh-eyes review. It buys parallelism, not a smarter answer.
    - Run in parallel only independent parts on different files.
