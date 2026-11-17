@@ -32,18 +32,26 @@ def transcript(*calls):
     return p
 
 
-empty = transcript(("Bash", {"command": "ls"}))
-read_only = transcript(("Read", {"file_path": "/w/.plans/old.md"}))
-written = transcript(("Write", {"file_path": "/w/.plans/2026-11-17-x.md", "content": "goal"}))
-via_bash = transcript(("Bash", {"command": "cat > ~/w/.plans/2026-11-17-x.md <<'EOF'\ngoal\nEOF"}))
+empty = transcript(("Bash", {"command": "ls"}), ("Agent", {"subagent_type": "general-purpose"}))
+first = transcript(("Bash", {"command": "ls"}))
+bash_read = transcript(("Bash", {"command": "ls ~/w/.plans/ && cat ~/w/.plans/old.md"}), ("Agent", {"subagent_type": "Explore"}))
+read_only = transcript(("Read", {"file_path": "/w/.plans/old.md"}), ("Agent", {"subagent_type": "general-purpose"}))
+written = transcript(("Write", {"file_path": "/w/.plans/2026-11-17-x.md", "content": "goal"}), ("Agent", {"subagent_type": "general-purpose"}))
+via_bash = transcript(("Bash", {"command": "cat > ~/w/.plans/2026-11-17-x.md <<'EOF'\ngoal\nEOF"}), ("Agent", {"subagent_type": "general-purpose"}))
 
+code, out = run("Agent", "general-purpose", first)
+check(out == "", f"the first agent of a session is free ({out[:60]})")
+code, out = run("Agent", "general-purpose", bash_read)
+check('"deny"' in out, "ls/cat of .plans through Bash is not writing a plan")
+code, out = run("Agent", "Explore", empty)
+check(out == "", "Explore (read-only search) is exempt")
 code, out = run("Agent", "general-purpose", empty)
 check(code == 0 and '"deny"' in out and "Plan file first" in out, f"no plan file -> deny ({out[:80]})")
 code, out = run("Agent", "general-purpose", read_only)
 check('"deny"' in out, "reading an old plan file is not writing one")
 code, out = run("Agent", "general-purpose", written)
 check(out == "", f"plan file written -> allowed ({out[:80]})")
-code, out = run("Agent", "Explore", via_bash)
+code, out = run("Agent", "general-purpose", via_bash)
 check(out == "", "plan file written through Bash -> allowed")
 for kind in ("money-reviewer", "reviewer", "verifier", "web-fetch"):
     code, out = run("Agent", kind, empty)
@@ -52,7 +60,7 @@ code, out = run("Bash", "", empty)
 check(out == "", "other tools are not touched")
 code, out = run("Agent", "general-purpose", "/nonexistent/t.jsonl")
 check(out == "", "missing transcript never blocks")
-for p in (empty, read_only, written, via_bash):
+for p in (empty, first, bash_read, read_only, written, via_bash):
     os.remove(p)
-print(f"plan-gate: 11 checks, {failures} failed")
+print(f"plan-gate: 14 checks, {failures} failed")
 sys.exit(1 if failures else 0)

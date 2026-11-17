@@ -55,7 +55,7 @@ Cost: multi-agent research ran at about 15× the tokens of chat. A full planner�
 | Ask what the repo can't tell | Same, plus: all questions in the first reply. Mid-task, the recommended option is taken and reported. |
 | Fresh-context reviewer, "skip style" | A `critical-reviewer` on diffs that move money, and a `reviewer` on large other diffs. Each gets explicit criteria and names the class of bug. |
 | Rules with zero exceptions go in hooks or permission rules, not prose; deny and ask rules hold even in `bypassPermissions` ✓ | Force-push is an `ask` permission rule. A probe in `bypassPermissions` mode was held for approval: "Claude requested permissions to use Bash, but you haven't granted it yet". |
-| Lead saves its plan to a file; workers return file references (RS) | Hook `plan-gate.py` (PreToolUse on Agent) denies worker agents until the session has written a `.plans/` file; reviewers, verifier and web-fetch are exempt. Probe 2026-11-17: a fresh session was blocked 3×, wrote the plan, then its 3 agents each wrote `.plans/<slug>/svc-*.md`. |
+| Lead saves its plan to a file; workers return file references (RS) | Hook `plan-gate.py` (PreToolUse on Agent) denies the second and later worker agents of a session until it has written a `.plans/` file (a lone agent is free; Explore, scout, reviewers, verifier and web-fetch are exempt; `ls`/`cat` of a plan doesn't count). Probe 2026-11-17: a fresh session was blocked 3×, wrote the plan, then its 3 agents each wrote `.plans/<slug>/svc-*.md`. |
 | `/goal` or a Stop hook for unattended runs | Not adopted. A replay of 842 turns found the gap was weak proof, not missing runs, so a prompt hook asks for proof instead. |
 
 ## Sources
