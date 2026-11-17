@@ -83,7 +83,8 @@ Measured on 2026-11-17 against the rules and hooks in this repo as they are now.
 |---|---|---|---|---|---|---|
 | Fix on a money path | **These rules** | **9 / 10** | 22.5 min | 3.01M | 2 reviewers | MEDIUM |
 | | Plain Claude Code | 8 / 10 | **17.4 min** | **1.92M** | — | MEDIUM ×2 |
-| Triage of a validator's findings | | *rerun pending: both arms hit the plan's 5-hour limit* | | | | |
+| Triage of a validator's findings | These rules | 9 / 10 | 18.2 min | **3.48M** | 1 helper | 0 false claims |
+| | Plain Claude Code | **9.5 / 10** | **13.0 min** | 4.56M | 3 forks | 1 false claim |
 
 **Rework on real work.** Sessions from before the switch (2026-10-01..10-30, 122 real) and after it (2026-10-31..11-17, 55 real) were mixed, stripped of dates and classified blind by three independent classifiers with one brief:
 
@@ -97,6 +98,7 @@ Measured on 2026-11-17 against the rules and hooks in this repo as they are now.
 **What that means**
 
 - 🛡️ **Money fix: rules ahead by one point, at the edge of noise.** The rules' own review pass fixed what it found before the report; both arms still shipped a MEDIUM defect. Price: +29% time, +57% tokens.
+- ⚖️ **Triage: a tie.** Both covered every finding with exact ids and missed the same bug. Plain was 5 minutes faster but used 31% more tokens: its helpers inherited high effort.
 - 📉 **Rework: no measurable change.** +4 points, 95% CI −11..+20. An earlier recheck said "26% → 51%", but it compared two different classifier runs; with the same classifiers on one mixed set the gap almost disappears.
 - ✂️ **Sessions got shorter:** the median session now needs 2 prompts instead of 4, and fewer sessions contain a correction. Corrections per follow-up prompt did not drop (0.16 → 0.19).
 - ❌ **No solution in any arm was ready to merge.**
@@ -309,7 +311,7 @@ Where the setup stands against Anthropic's docs, row by row with links and dates
 
 **Самовдосконалення.** Скіли й пам'ять веде сам Claude: створює, виправляє, скорочує, а замість видалення переносить в архів. Щопонеділка `memory-staleness-audit` чистить пам'ять, а `setup-self-improve` читає тиждень сесій, перетворює виправлення власника на скіли й пам'ять, архівує мертві скіли, рахує питання посеред задачі і звіряє сетап із документацією Anthropic. Видалення правил, агентів і hook-ів, зміни глобального `CLAUDE.md` і будь-що, що послаблює правило безпеки, — лише після «так».
 
-**Чесно про результат (заміряно 2026-11-17).** Сліпий A/B поточних правил і hook-ів проти «голого» Claude Code: на грошовому фіксі 9/10 проти 8/10. Цей бал різниці — на межі шуму: та сама конфігурація давала 6.25 і 7.25. Ціна: +29% часу, +57% токенів, і в обох лишився MEDIUM-дефект. Тріаж валідатора ще перезапускається, бо обидві гілки вперлися в 5-годинний ліміт. Переробки на реальній роботі, наосліп, трьома класифікаторами на перемішаному наборі: 39% до змін і 44% після, 95% CI −11..+20, тобто змін не видно. Попередні «26% → 51%» були артефактом різних класифікаторів. Сесії стали коротшими: медіана 2 промпти замість 4. Кожна A/B-цифра — один прогін. Деталі в [docs/RESULTS.md](docs/RESULTS.md).
+**Чесно про результат (заміряно 2026-11-17).** Сліпий A/B поточних правил і hook-ів проти «голого» Claude Code: на грошовому фіксі 9/10 проти 8/10. Цей бал різниці — на межі шуму: та сама конфігурація давала 6.25 і 7.25. Ціна: +29% часу, +57% токенів, і в обох лишився MEDIUM-дефект. На тріажі валідатора нічия: 9 проти 9.5. Обидва покрили всі знахідки й пропустили той самий баг; без правил вийшло на 5 хв швидше, але на 31% більше токенів. Переробки на реальній роботі, наосліп, трьома класифікаторами на перемішаному наборі: 39% до змін і 44% після, 95% CI −11..+20, тобто змін не видно. Попередні «26% → 51%» були артефактом різних класифікаторів. Сесії стали коротшими: медіана 2 промпти замість 4. Кожна A/B-цифра — один прогін. Деталі в [docs/RESULTS.md](docs/RESULTS.md).
 
 ## License
 

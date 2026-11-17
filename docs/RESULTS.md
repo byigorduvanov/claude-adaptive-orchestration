@@ -30,9 +30,11 @@ Plain = no user `CLAUDE.md`, no hooks, no custom agents. Shared: skills, a memor
 |---|---|---|---|---|---|---|
 | One fix on a money path | Current rules | **9** | 22.5 min | 3.01M | 2 `critical-reviewer` | MEDIUM: a stale verify loop can close a new position on the same symbol |
 | | Plain | 8 | **17.4 min** | **1.92M** | none | MEDIUM ×2: retries run out with no exit left; a failed stop on a flat venue published as STOP LOSS and re-entered |
-| Triage of a validator's findings | both | rerun pending | | | | both arms hit the plan's 5-hour limit after 1.9 min |
+| Triage of a validator's findings | Current rules | 9 | 18.2 min | **3.48M** | 1 general-purpose (medium) | 0 false claims |
+| | Plain | **9.5** | **13.0 min** | 4.56M | 3 forks (inherit high effort) | 1 false claim (a row count) |
 
-- One point is at the noise floor (the same config scored 6.25 and 7.25 on this task). Price of the rules: +29% time, +57% tokens.
+- Money fix: one point is at the noise floor (the same config scored 6.25 and 7.25 on this task). Price of the rules: +29% time, +57% tokens.
+- Triage: a tie. Both covered all 638 (row, check) pairs with exact ids and missed the same bug (a signature error on non-ASCII symbols). Plain was 5 minutes faster; its forks inherited high effort and used 31% more tokens. The first attempt hit the terminal plan's 5-hour limit after 1.9 minutes; the rerun used the app account.
 - Both solutions fixed both bugs with tests that fail on the base; neither was ready to merge.
 
 ## Round 5 (10-31): earlier, longer rules against one plain session
