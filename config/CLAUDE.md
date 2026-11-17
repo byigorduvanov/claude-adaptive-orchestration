@@ -73,6 +73,7 @@ At the end of every response, list typos found in my latest message under `**Typ
 - Every long job gets an ETA when you start it: minutes and wall-clock time, plus the basis (a measured rate, a prior run, or a guess marked as a guess). Make the job print `[n/N]` and re-estimate from the real rate.
 
 ## Verify before reporting
+- **Try to break your own result before you show it.** Before you call a change done, correct, required or recommended, break it yourself first. Run it on 3–5 realistic cases from my real use, including the ones where it would be too strict, too loose or wrong: edge cases, the smallest and the exempt case, a read-only case, the old behaviour it replaces. Check it against the guidance it claims to follow. Fix what breaks, then report — one round, not three. If I find a flaw you could have found this way, this rule failed. The summary names the cases you tried.
 - Run the repo's own build, vet and test commands before reporting.
 - After any remote or destructive action, re-read the real state with an independent check (re-list, `git ls-remote`, `gh api`, `pm2 jlist`, the endpoint itself) and quote that evidence.
 - A 404, an empty list, empty output or a zero exit code is NOT proof on its own: first confirm the check works on a known-existing case. If it can't be trusted, say "not verified", never "done".

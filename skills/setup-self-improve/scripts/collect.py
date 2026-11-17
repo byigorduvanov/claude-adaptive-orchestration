@@ -75,7 +75,10 @@ def skills_in(d):
     return [s.split(":")[-1] for s in out]
 
 
-MID_ASK_CALLS = 3
+# Mid-task = after the first file edit since the owner's prompt, or after MID_ASK_CALLS tool calls.
+# Measured 2026-11-17: up-front questions came after 2-9 calls of looking first, mid-task ones after 26-140.
+MID_ASK_CALLS = 15
+EDITS = ("Write", "Edit", "MultiEdit", "NotebookEdit")
 
 
 def parse(path):
@@ -84,6 +87,7 @@ def parse(path):
     pending_ask = {}
     last_reply = None
     calls_since_prompt, early_asks, mid_asks, agents = 0, 0, 0, 0
+    edited, mid_recommended = False, 0
     try:
         f = open(path, encoding="utf-8", errors="ignore")
     except OSError:
@@ -114,7 +118,7 @@ def parse(path):
                     turns.append(last_reply)
                     last_reply = None
                 prompts.append(p)
-                calls_since_prompt = 0
+                calls_since_prompt, edited = 0, False
                 continue
             msg = d.get("message") or {}
             content = msg.get("content")
@@ -127,10 +131,13 @@ def parse(path):
                     if x.get("type") == "tool_use":
                         calls_since_prompt += 1
                         agents += x.get("name") == "Agent"
+                        edited = edited or x.get("name") in EDITS
                     if x.get("type") == "tool_use" and x.get("name") == "AskUserQuestion":
-                        # CLAUDE.md: questions go in the first reply. After MID_ASK_CALLS other tool calls it is mid-task.
-                        if calls_since_prompt > MID_ASK_CALLS:
+                        # CLAUDE.md: questions go in the first reply, after looking, before changing anything.
+                        if edited or calls_since_prompt > MID_ASK_CALLS:
                             mid_asks += 1
+                            labels = json.dumps((x.get("input") or {}).get("questions") or [], ensure_ascii=False)
+                            mid_recommended += "Recommended" in labels or "Рекомендовано" in labels
                         else:
                             early_asks += 1
                         qs = (x.get("input") or {}).get("questions") or []
@@ -142,7 +149,7 @@ def parse(path):
     if last_reply:
         turns.append(last_reply)
     return {"prompts": prompts, "turns": turns, "asks": asks, "uses": uses, "title": title, "cwd": cwd, "first": first, "last": last,
-            "early_asks": early_asks, "mid_asks": mid_asks, "agents": agents}
+            "early_asks": early_asks, "mid_asks": mid_asks, "mid_recommended": mid_recommended, "agents": agents}
 
 
 def cut(s, n):
@@ -199,7 +206,7 @@ def main():
     oldest = min((os.path.getmtime(p) for p in all_paths), default=now.timestamp())
     last_use = {}
     rows = []
-    asks_total = {"early_asks": 0, "mid_asks": 0, "agents": 0}
+    asks_total = {"early_asks": 0, "mid_asks": 0, "mid_recommended": 0, "agents": 0}
     mid_sessions = []
     window = {p for p in all_paths if os.path.getmtime(p) >= since.timestamp()} | {p for p in hook_paths if os.path.exists(p) and os.path.getmtime(p) >= since.timestamp()}
     for path in all_paths:
@@ -268,7 +275,7 @@ def main():
                "history_from": dt.datetime.fromtimestamp(oldest).strftime("%Y-%m-%d"), "hook_sessions_logged": len(hook_paths),
                **asks_total, "mid_ask_sessions": mid_sessions}
     json.dump(summary, open(os.path.join(a.out, "summary.json"), "w"), indent=1)
-    print(f"sessions={len(rows)} batches={len(batches)} skills={len(skills)} unused={len(unused)} early_asks={asks_total['early_asks']} mid_asks={asks_total['mid_asks']} agents={asks_total['agents']} history_from={summary['history_from']} -> {a.out}")
+    print(f"sessions={len(rows)} batches={len(batches)} skills={len(skills)} unused={len(unused)} early_asks={asks_total['early_asks']} mid_asks={asks_total['mid_asks']} mid_recommended={asks_total['mid_recommended']} agents={asks_total['agents']} history_from={summary['history_from']} -> {a.out}")
 
 
 if __name__ == "__main__":

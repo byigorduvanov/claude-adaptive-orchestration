@@ -34,7 +34,9 @@ lines = [
     {"type": "assistant", "isSidechain": False, "timestamp": now, "message": {"content": [
         {"type": "tool_use", "id": "b1", "name": "Bash", "input": {}},
         {"type": "tool_use", "id": "b2", "name": "Agent", "input": {}},
-        {"type": "tool_use", "id": "t9", "name": "AskUserQuestion", "input": {"questions": [{"question": "352 or 384?"}]}}]}},
+        {"type": "tool_use", "id": "b3", "name": "Edit", "input": {}},
+        {"type": "tool_use", "id": "t9", "name": "AskUserQuestion", "input": {"questions": [
+            {"question": "352 or 384?", "options": [{"label": "352 (Recommended)"}, {"label": "384"}]}]}}]}},
     {"type": "user", "isSidechain": False, "timestamp": now, "message": {"content": "<task-notification>x</task-notification>"}},
     {"type": "custom-title", "customTitle": "Fix the gate"},
     "not json at all",
@@ -69,8 +71,8 @@ check("task-notification" not in dig, "app events are not owner prompts")
 check("Which account?" in dig and "acc-2" in dig, "AskUserQuestion Q/A in digest")
 check("Skills used: used-skill" in dig and "Done, proof below." in dig, "skills and last reply in digest")
 check(open(os.path.join(out, "batches.txt")).read().count("batch ") == 1, "one batch")
-check((summary["early_asks"], summary["mid_asks"], summary["agents"]) == (1, 1, 1),
-      f"asks early/mid/agents {summary.get('early_asks')}/{summary.get('mid_asks')}/{summary.get('agents')} (2nd call = early, 5th = mid)")
+check((summary["early_asks"], summary["mid_asks"], summary.get("mid_recommended"), summary["agents"]) == (1, 1, 1, 1),
+      f"asks early/mid/mid_rec/agents {summary.get('early_asks')}/{summary.get('mid_asks')}/{summary.get('mid_recommended')}/{summary.get('agents')} (before any edit = early, after an Edit = mid, with a Recommended option)")
 check(summary["mid_ask_sessions"] == ["s1"], f"mid_ask_sessions {summary.get('mid_ask_sessions')}")
 print(f"collect: 9 checks, {failures} failed")
 sys.exit(1 if failures else 0)
