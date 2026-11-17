@@ -27,7 +27,7 @@ The docs give no fixed pipeline: "Claude decides what each step requires" (how-c
 | Fork | The side task needs this conversation's context; trying several approaches from one start | Independent review: the fork sees your reasoning | SUB |
 | Parallel sessions / worktrees | Truly independent pieces that touch different files, or work that won't fit one context | Same-file edits, sequential steps | AG, WT |
 | Agent team (experimental) | Teammates must debate or coordinate: competing hypotheses, separate modules | "sequential tasks, same-file edits, or work with many dependencies" | AT |
-| Workflow script | The job "outgrows a handful of subagents" or needs cross-checked findings | Anything that needs your input mid-run | WF |
+| Workflow script (off in this setup, to save context) | The job "outgrows a handful of subagents" or needs cross-checked findings | Anything that needs your input mid-run | WF |
 
 Cost: multi-agent research ran at about 15× the tokens of chat. A full planner–generator–evaluator harness took 6 h and $200 against 20 min and $9 solo (HD). The research post adds that "most coding tasks involve fewer truly parallelizable tasks than research" (RS). So multi-agent has to earn its place.
 
@@ -54,6 +54,7 @@ Cost: multi-agent research ran at about 15× the tokens of chat. A full planner�
 | JSON feature list with `passes` | Markdown steps where `done` needs its proof next to it. Same idea (no done without a check), lighter format. |
 | Ask what the repo can't tell | Same, plus: all questions in the first reply. Mid-task, the recommended option is taken and reported. |
 | Fresh-context reviewer, "skip style" | A `critical-reviewer` on diffs that move money, and a `reviewer` on large other diffs. Each gets explicit criteria and names the class of bug. |
+| Rules with zero exceptions go in hooks or permission rules, not prose; deny and ask rules hold even in `bypassPermissions` ✓ | Force-push is an `ask` permission rule. A probe in `bypassPermissions` mode was held for approval: "Claude requested permissions to use Bash, but you haven't granted it yet". |
 | `/goal` or a Stop hook for unattended runs | Not adopted. A replay of 842 turns found the gap was weak proof, not missing runs, so a prompt hook asks for proof instead. |
 
 ## Sources
