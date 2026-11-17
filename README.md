@@ -75,30 +75,34 @@ An agent is added **only** for truly independent parts (a broad audit, a large m
 
 ## Results: read this first
 
-> [!IMPORTANT]
-> **This is not proven to beat one plain Claude Code session.** Every number below is **one run** per task and arm, on one owner's real work (Opus 5.5, October 2026). It shows direction, not a precise measurement. A gap under about one point is noise.
+Measured on 2026-11-17 against the rules and hooks in this repo as they are now. Every A/B number is **one run** per task and arm, on one owner's real work (Opus 5.5): it shows direction, not a precise measurement. The same config scored 6.25 and 7.25 on the same task in two runs, so **a gap under about one point is noise**.
 
-> [!NOTE]
-> These runs tested the earlier, longer rules. The current short rules and the task contract hook have **not** been through this test.
-
-Latest test — those rules vs. one plain session, run at the same time, same CLI version, base commit, skills and memory, labels hidden until grading ended:
+**A/B: these rules + hooks + agents vs. plain Claude Code** (no `CLAUDE.md`, no hooks, no custom agents). Both arms had the same skills and memory snapshot, CLI version and base commit, and ran at the same time. Labels stayed hidden from the graders, who used the same brief as earlier rounds and wrote their own probe tests.
 
 | Task | Arm | Score | Time | Tokens | Agents | Worst defect |
 |---|---|---|---|---|---|---|
-| Fix on a money path | **Longer rules** | **7.75** | 28.5 min | 2.00M | 1 reviewer | MEDIUM |
-| | One session | 7.25 | **18 min** | **1.20M** | — | **HIGH** |
-| Triage of a validator's findings | Longer rules | 8.8 | 14.8 min | 1.37M | — | — |
-| | One session | 8.8 | 14.1 min | 1.23M | — | — |
+| Fix on a money path | **These rules** | **9 / 10** | 22.5 min | 3.01M | 2 reviewers | MEDIUM |
+| | Plain Claude Code | 8 / 10 | **17.4 min** | **1.92M** | — | MEDIUM ×2 |
+| Triage of a validator's findings | | *rerun pending: both arms hit the plan's 5-hour limit* | | | | |
+
+**Rework on real work.** Sessions from before the switch (2026-10-01..10-30, 122 real) and after it (2026-10-31..11-17, 55 real) were mixed, stripped of dates and classified blind by three independent classifiers with one brief:
+
+| | Before | After |
+|---|---|---|
+| Needed rework (majority of 3) | 39% | 44% |
+| Per classifier | 39 / 41 / 34% | 44 / 41 / 49% |
+| Median prompts per session | 4 | 2 |
+| Sessions with a correction word in a follow-up | 39% | 29% |
 
 **What that means**
 
-- ⚖️ **Triage: a tie.** The rules chose not to start any agents and matched the plain session.
-- 🛡️ **Money fix: the review is the difference.** It removed the only HIGH defect, at +10.5 minutes and +67% tokens.
-- ⚡ **Broad audit (earlier version):** 6 parallel auditors scored 8 vs 6.5, about 1.4× faster at about 1.8× tokens. The current rules have not re-run it.
+- 🛡️ **Money fix: rules ahead by one point, at the edge of noise.** The rules' own review pass fixed what it found before the report; both arms still shipped a MEDIUM defect. Price: +29% time, +57% tokens.
+- 📉 **Rework: no measurable change.** +4 points, 95% CI −11..+20. An earlier recheck said "26% → 51%", but it compared two different classifier runs; with the same classifiers on one mixed set the gap almost disappears.
+- ✂️ **Sessions got shorter:** the median session now needs 2 prompts instead of 4, and fewer sessions contain a correction. Corrections per follow-up prompt did not drop (0.16 → 0.19).
 - ❌ **No solution in any arm was ready to merge.**
-- 📉 **Rework on real work, first recheck (2026-11-16): worse, not better.** 43 sessions after the switch needed rework in 51% of cases, against 26% in the baseline. Small sample, one classifier run, so a weak signal. The top causes became the next rules: the owner had to say "check it yourself", research ran with an unstated scope, and long sessions kept asking "did it work". Next comparison: 2026-12-07.
+- ⚡ **Broad audit (earlier rules, October):** 6 parallel auditors scored 8 vs 6.5, about 1.4× faster at about 1.8× tokens. Not re-run on the current rules.
 
-Full tables, earlier versions, and the measurement mistakes made along the way: **[docs/RESULTS.md](docs/RESULTS.md)**.
+Full tables, earlier rounds, and the measurement mistakes made along the way: **[docs/RESULTS.md](docs/RESULTS.md)**.
 
 ## What's inside
 
@@ -211,7 +215,7 @@ Shortened here; [the script](hooks/task-contract.py) has the full text. Why a ho
 **Context reminder.** The hook also reads the session transcript. Once the last request carried more than 150k tokens of context (`TASK_CONTRACT_CONTEXT_LIMIT`), it tells the model to end its reply with a ready-to-paste prompt for a new session. Reason: in 14 days of my own logs, 77% of the main-session cost came from sessions that grew to 200–500k tokens, because every request re-reads the whole conversation.
 
 > [!NOTE]
-> It is an instruction, not a lock: the model can still break it. I confirmed that the text reaches the model, not that rework went down.
+> It is an instruction, not a lock: the model can still break it. The text reaches the model; a blind recheck found no measurable change in rework (see [Results](#results-read-this-first)).
 
 **Tried and dropped:** a Stop hook for "code edited, nothing run after it". Replayed on 842 past turns, it would have fired on 4 of 47 turns with edits, none on trading code. Rework comes from weak proof, not from missing runs.
 
@@ -305,7 +309,7 @@ Where the setup stands against Anthropic's docs, row by row with links and dates
 
 **Самовдосконалення.** Скіли й пам'ять веде сам Claude: створює, виправляє, скорочує, а замість видалення переносить в архів. Щопонеділка `memory-staleness-audit` чистить пам'ять, а `setup-self-improve` читає тиждень сесій, перетворює виправлення власника на скіли й пам'ять, архівує мертві скіли, рахує питання посеред задачі і звіряє сетап із документацією Anthropic. Видалення правил, агентів і hook-ів, зміни глобального `CLAUDE.md` і будь-що, що послаблює правило безпеки, — лише після «так».
 
-**Чесно про результат.** Що ці правила кращі за звичайну сесію, **не доведено**. Поточні правила і hook-и ще не проходили A/B. Перша перевірка переробок на реальній роботі (2026-11-16) показала 51% проти 26% до змін: вибірка мала, сигнал слабкий, але не на нашу користь; її причини стали наступними правилами. На грошовому фіксі незалежне рев'ю прибрало єдиний HIGH-дефект ціною +10 хвилин. Кожна цифра — один прогін. Деталі в [docs/RESULTS.md](docs/RESULTS.md).
+**Чесно про результат (заміряно 2026-11-17).** Сліпий A/B поточних правил і hook-ів проти «голого» Claude Code: на грошовому фіксі 9/10 проти 8/10. Цей бал різниці — на межі шуму: та сама конфігурація давала 6.25 і 7.25. Ціна: +29% часу, +57% токенів, і в обох лишився MEDIUM-дефект. Тріаж валідатора ще перезапускається, бо обидві гілки вперлися в 5-годинний ліміт. Переробки на реальній роботі, наосліп, трьома класифікаторами на перемішаному наборі: 39% до змін і 44% після, 95% CI −11..+20, тобто змін не видно. Попередні «26% → 51%» були артефактом різних класифікаторів. Сесії стали коротшими: медіана 2 промпти замість 4. Кожна A/B-цифра — один прогін. Деталі в [docs/RESULTS.md](docs/RESULTS.md).
 
 ## License
 

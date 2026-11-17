@@ -1,6 +1,6 @@
 # Results
 
-One owner, real work, Claude Code with Opus 5.5, October 2026. Project details are left out. **Each number below is one run per task and arm.** It shows direction, not a precise measurement.
+One owner, real work, Claude Code with Opus 5.5, October–November 2026. Project details are left out. **Each number below is one run per task and arm.** It shows direction, not a precise measurement.
 
 ## What the owner's sessions look like
 
@@ -22,7 +22,20 @@ One owner, real work, Claude Code with Opus 5.5, October 2026. Project details a
 - Overall rework: 25%. The most common cause was a result nobody had proven.
 - Only about 7% of sessions split into independent parts. That is a lower bound, judged from opening prompts, and it ignores parallel evidence gathering.
 
-## Latest test: current rules against one plain session
+## Round 6 (2026-11-17): current rules + hooks + agents vs plain Claude Code
+
+Plain = no user `CLAUDE.md`, no hooks, no custom agents. Shared: skills, a memory snapshot from 10-31 (later notes could hold the answers), CLI 2.1.326, base commit, Opus 5.5 effort high; both arms of a task at once; graders blind, same brief as round 5, each wrote probe tests.
+
+| Task | Arm | Score | Time | Tokens | Agents | Worst defect |
+|---|---|---|---|---|---|---|
+| One fix on a money path | Current rules | **9** | 22.5 min | 3.01M | 2 `critical-reviewer` | MEDIUM: a stale verify loop can close a new position on the same symbol |
+| | Plain | 8 | **17.4 min** | **1.92M** | none | MEDIUM ×2: retries run out with no exit left; a failed stop on a flat venue published as STOP LOSS and re-entered |
+| Triage of a validator's findings | both | rerun pending | | | | both arms hit the plan's 5-hour limit after 1.9 min |
+
+- One point is at the noise floor (the same config scored 6.25 and 7.25 on this task). Price of the rules: +29% time, +57% tokens.
+- Both solutions fixed both bugs with tests that fail on the base; neither was ready to merge.
+
+## Round 5 (10-31): earlier, longer rules against one plain session
 
 Both configs ran at once on the same CLI version, base commit, skills and memory, with the same grader brief. Labels stayed hidden until grading ended.
 
@@ -91,10 +104,23 @@ Earlier versions of the rules, kept for the history. Tokens are input-equivalent
 - **Automatic bug records vs. failure classes:** of 95 `bugfix` records in 14 days, 21 were about money code. 7 were covered by the reviewer's classes, 3 partly, 11 not, which gave 5 new classes. Sorted by hand from titles and the start of each record.
 - **A record is not a fix.** One record said a bug was guarded, but the fix existed only in a benchmark arm and was never merged. Check the code, not the record.
 
-## Rework recheck (2026-11-16)
+## Rework recheck, blind (2026-11-17)
 
-43 real sessions from 2026-10-31 to 2026-11-16, classified by one agent: **51% needed rework, against 26% before.** Small sample and one classifier run, so a weak signal, but it points the wrong way. Top causes: the owner had to say "check it yourself", research and backtests ran with an unstated scope, and long operations sessions kept getting "did it work?". Each became a rule (verify it yourself, state the assumed scope up front, ask questions only up front). Next comparison: 2026-12-07.
+Sessions before the switch (2026-10-01..10-30) and after it (2026-10-31..11-17) mixed into one set, dates removed, shuffled, classified by three independent Sonnet agents with `benchmark/classify_brief.md`.
+
+| | Before | After |
+|---|---|---|
+| Real sessions (majority not NOISE) | 122 | 55 |
+| Needed rework, majority of 3 | 48 = 39% | 24 = 44% |
+| Per classifier | 39 / 41 / 34% | 44 / 41 / 49% |
+| Median prompts per session (no classifier) | 4 | 2 |
+| Sessions with a correction word in a follow-up (regex) | 39% | 29% |
+| Correction words per follow-up prompt (regex) | 0.16 | 0.19 |
+
+Difference +4.3 points, 95% CI −11..+20: no measurable change. The three classifiers agreed on rework yes/no for 82% (before) and 75% (after) of sessions.
+
+**Lesson:** the 2026-11-16 recheck reported "26% → 51%". It compared a three-agent classification of about 700 older sessions with a one-agent classification of 43 new ones. Classified together, blind, the gap shrinks to noise. Compare periods only inside one classification run.
 
 ## Not measured
 
-Whether the current rules and hooks beat one plain session in the A/B test: they have not been through it.
+More than one run per arm, and a broad multi-part task on the current rules.
