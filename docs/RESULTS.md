@@ -22,6 +22,22 @@ One owner, real work, Claude Code with Opus 5.5, October–November 2026. Projec
 - Overall rework: 25%. The most common cause was a result nobody had proven.
 - Only about 7% of sessions split into independent parts. That is a lower bound, judged from opening prompts, and it ignores parallel evidence gathering.
 
+## Round 7 (2026-11-18): feature build, current rules + hooks + agents vs plain Claude Code
+
+A replay of a real feature: a pre-buy token guard for a Rust copy-trader. The copier must never buy a token that has blacklist functions or has not been checked yet. Checks run off the hot path, and the guard prewarms tokens traded on the chain. Both arms got the base commit before the feature and the owner's real prompt, with the owner's three real answers given up front. The answer was hidden: no later commits, a memory snapshot without notes about the feature, and the reviewer's memory without the two bug classes found on it. There were no live orders. Same setup as round 6 otherwise. Both arms hit the terminal plan's 5-hour limit and were resumed at once in the same session on the app account (about 1 s pause).
+
+Grading: one blind `money-reviewer` (opus/medium) per arm, with one brief. The final feature's 30 real tests were ported onto each arm's own API as 11 requirement scenarios and 8 design/edge scenarios, replaying the recorded chain data. Graders also wrote probe tests for defects and timed the hot path, base vs solution.
+
+| Task | Arm | Score | Real scenarios (req / edge) | Time | Tokens | Agents | Worst defect |
+|---|---|---|---|---|---|---|---|
+| Feature build on a money path | Current rules | **7.3** | 10/11, **5/8** | **57.1 min** | **5.26M** | 2 `money-reviewer` | MEDIUM: one sell route (a hop kept in the router) can have its exit refused |
+| | Plain | 5.3 | 10/11, 3/8 | 106.9 min | 7.21M | 1 general-purpose (medium), 3 review passes | MEDIUM ×2: exits to WETH can be refused; a proxy whose implementation delegates to an unknown target passes the blacklist check |
+
+- The rules were ahead by 2 points, finished in about half the time and used 27% fewer tokens. That is above the ~1-point noise floor, but it is one run per arm with one grader per arm: a direction, not proof.
+- Both met the same requirements (10/11, and both missed the same recheck order). The gap is defects: plain shipped one more MEDIUM and 3 LOW against 1 LOW, and its report called a blocked exit "missed buys, no money lost". The plain arm's bypass probe was run against the rules arm too, and the rules arm refuses that token.
+- Plain built more: a buy-and-sell simulation per token, which the real feature had only proposed. It paid for that in time.
+- Neither solution was ready to merge: both can refuse an exit on some sell routes. The real feature took 5 review rounds and about 7.5 hours, including live rounds.
+
 ## Round 6 (2026-11-17): current rules + hooks + agents vs plain Claude Code
 
 Plain = no user `CLAUDE.md`, no hooks, no custom agents. Shared: skills, a memory snapshot from 10-31 (later notes could hold the answers), CLI 2.1.326, base commit, Opus 5.5 effort high; both arms of a task at once; graders blind, same brief as round 5, each wrote probe tests.

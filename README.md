@@ -75,9 +75,9 @@ An agent is added **only** for truly independent parts (a broad audit, a large m
 
 ## Results: read this first
 
-Measured on 2026-11-17 against the rules and hooks in this repo as they are now. Every A/B number is **one run** per task and arm, on one owner's real work (Opus 5.5): it shows direction, not a precise measurement. The same config scored 6.25 and 7.25 on the same task in two runs, so **a gap under about one point is noise**.
+Measured on 2026-11-17 (feature build: 2026-11-18) against the rules and hooks in this repo as they are now. Every A/B number is **one run** per task and arm, on one owner's real work (Opus 5.5): it shows direction, not a precise measurement. The same config scored 6.25 and 7.25 on the same task in two runs, so **a gap under about one point is noise**.
 
-**A/B: these rules + hooks + agents vs. plain Claude Code** (no `CLAUDE.md`, no hooks, no custom agents). Both arms had the same skills and memory snapshot, CLI version and base commit, and ran at the same time. Labels stayed hidden from the graders, who used the same brief as earlier rounds and wrote their own probe tests.
+**A/B: these rules + hooks + agents vs. plain Claude Code** (no `CLAUDE.md`, no hooks, no custom agents). Both arms had the same skills and memory snapshot, CLI version and base commit, and ran at the same time. Labels stayed hidden from the graders, who used one shared brief per task (the fix and triage briefs from earlier rounds) and wrote their own probe tests.
 
 | Task | Arm | Score | Time | Tokens | Agents | Worst defect |
 |---|---|---|---|---|---|---|
@@ -85,6 +85,8 @@ Measured on 2026-11-17 against the rules and hooks in this repo as they are now.
 | | Plain Claude Code | 8 / 10 | **17.4 min** | **1.92M** | — | MEDIUM ×2 |
 | Triage of a validator's findings | These rules | 9 / 10 | 18.2 min | **3.48M** | 1 helper | 0 false claims |
 | | Plain Claude Code | **9.5 / 10** | **13.0 min** | 4.56M | 3 forks | 1 false claim |
+| Feature build on a money path (replay of a real feature) | **These rules** | **7.3 / 10** | **57.1 min** | **5.26M** | 2 reviewers | MEDIUM |
+| | Plain Claude Code | 5.3 / 10 | 106.9 min | 7.21M | 1 helper | MEDIUM ×2 |
 
 **Rework on real work.** Sessions from before the switch (2026-10-01..10-30, 122 real) and after it (2026-10-31..11-17, 55 real) were mixed, stripped of dates and classified blind by three independent classifiers with one brief:
 
@@ -98,6 +100,7 @@ Measured on 2026-11-17 against the rules and hooks in this repo as they are now.
 **What that means**
 
 - 🛡️ **Money fix: rules ahead by one point, at the edge of noise.** The rules' own review pass fixed what it found before the report; both arms still shipped a MEDIUM defect. Price: +29% time, +57% tokens.
+- 🏗️ **Feature build: rules ahead by 2 points, about half the time, 27% fewer tokens.** Both met the same requirements (10 of 11 scenarios ported from the real feature's 30 tests); plain shipped one more MEDIUM defect (a proxy that delegates to an unknown target passed the blacklist check) and 3 LOW against 1. Above the noise floor, but one run per arm: direction, not proof. Neither was ready to merge. Details: [docs/RESULTS.md](docs/RESULTS.md).
 - ⚖️ **Triage: a tie.** Both covered every finding with exact ids and missed the same bug. Plain was 5 minutes faster but used 31% more tokens: its helpers inherited high effort.
 - 📉 **Rework: no measurable change.** +4 points, 95% CI −11..+20. An earlier recheck said "26% → 51%", but it compared two different classifier runs; with the same classifiers on one mixed set the gap almost disappears.
 - ✂️ **Sessions got shorter:** the median session now needs 2 prompts instead of 4, and fewer sessions contain a correction. Corrections per follow-up prompt did not drop (0.16 → 0.19).
