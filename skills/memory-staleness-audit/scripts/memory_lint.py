@@ -36,7 +36,7 @@ BANNER = re.compile(r"Context note \(added \d{4}-\d{2}-\d{2}\)")
 REL_HARD = re.compile(r"\b(yesterday|tomorrow|next week|last week|next month|last month)\b|завтра|вчора|позавчора|вчера", re.I)
 REL_SOFT = re.compile(r"\b(today|tonight|this week)\b|сьогодні|сегодня", re.I)
 RECHECK = re.compile(r"(?:re-?check|revisit|re-?test|review again)\s+in\s+(\d+)(?:\s*[–-]\s*(\d+))?\s*(day|week|month)s?", re.I)
-EXPIRES = re.compile(r"expir\w*\s+(?:on\s+|at\s+)?(\d{4}-\d{2}-\d{2})", re.I)
+EXPIRES = re.compile(r"expir\w*:?\s+(?:on\s+|at\s+)?(\d{4}-\d{2}-\d{2})", re.I)
 DATE = re.compile(r"(20\d{2})-(\d{2})-(\d{2})")
 LINK = re.compile(r"\]\(([^)#]+\.md)\)")
 WIKILINK = re.compile(r"\[\[([^\]|#]+)")
@@ -182,6 +182,11 @@ def main():
                 for field in ("name:", "description:", "type:"):
                     if field not in fm:
                         add("error", "frontmatter", f, 1, f"frontmatter lacks {field}", field)
+                # `expires: YYYY-MM-DD` marks a temporary note: past that date it gets archived
+                for m in EXPIRES.finditer(fm):
+                    d = parse_date(m.group(1))
+                    if d and d < dt.date.today():
+                        add("error", "expired", f, 1, f"temporary note expired {d}: archive it", m.group(1))
 
         has_banner = bool(BANNER.search(text))
         ndate = note_date(f, fm, path)

@@ -22,6 +22,16 @@
             "timeout": 5
           }
         ]
+      },
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/plan-gate.py",
+            "timeout": 5
+          }
+        ]
       }
     ],
     "SessionEnd": [

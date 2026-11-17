@@ -9,7 +9,7 @@ My real rules, four lean agents, a prompt hook, reviewer evals, and the A/B kit 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 ![Claude Code](https://img.shields.io/badge/Claude%20Code-rules%20%2B%20agents%20%2B%20hook-d97757)
 ![Status](https://img.shields.io/badge/status-experimental-orange)
-![Tests](https://img.shields.io/badge/tests-40%20cases-brightgreen)
+![Tests](https://img.shields.io/badge/tests-51%20cases-brightgreen)
 
 [How it works](#how-it-works) · [Results](#results-read-this-first) · [Install](#install) · [Task contract hook](#task-contract-hook) · [Self-improvement](#self-improvement-loop) · [Reviewer evals](#reviewer-evals) · [Benchmark kit](#benchmark-kit) · [Українською](#українською)
 

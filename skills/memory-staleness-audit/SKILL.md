@@ -1,6 +1,6 @@
 ---
 name: memory-staleness-audit
-description: "Audit auto-memory, the personal vault and claude-mem work state for stale facts (old hosts/accounts, relative dates, overdue rechecks, broken links, oversize index) and fix without deleting. Use for \"почисти пам'ять\", \"перевір vault\", \"перевір пам'ять на старе\", the weekly run."
+description: "Audit auto-memory, the personal vault and claude-mem work state for stale facts (old hosts/accounts, relative dates, overdue rechecks, broken links, oversize index) and fix or archive (never delete). Use for \"почисти пам'ять\", \"перевір vault\", \"перевір пам'ять на старе\", the weekly run."
 ---
 
 # Memory staleness audit
@@ -51,7 +51,7 @@ For each finding, read the note and decide which of three things it is:
 
 Other fixes: replace a relative date with the absolute one (derive it from the note's date; say so if it is a guess); for `recheck-due`, either do the recheck or tell the owner it is due; for `index-size`, move entries into a topic index file linked from `MEMORY.md`.
 
-Notes are never deleted in this audit: an old incident is evidence, and a wrong note corrected in place shows what was believed and when. Removing files stays the owner's call.
+Nothing is deleted. The owner handed memory over (CLAUDE.md "Skills and memory: you own them"), so you archive without asking. Archive means moving the note to `~/.claude/archive/<date>/<same path under ~>` and dropping its index line. Archive a note when its `expires:` date has passed (lint check `expired`), or when it states only a state that has ended and is no longer used. An old incident note stays: it is evidence. A wrong note that is still relevant is corrected in place, which shows what was believed and when. Never archive a safety rule; propose that.
 
 Back up each note before editing it (`cp -p` into a dated directory under the scratchpad), and re-run the lint afterwards: errors must be 0.
 

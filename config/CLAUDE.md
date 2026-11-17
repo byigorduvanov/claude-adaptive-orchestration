@@ -52,8 +52,13 @@ Before editing code in any git repo (in a multi-repo workspace: each repo separa
 ## Context7 MCP
 Use Context7 MCP unasked when a task depends on the docs, setup or configuration of a specific library/framework version or API surface.
 
-## Skill Creator
-After a repeatable, non-trivial procedure (judged by what you actually did), create or update a skill with `skill-creator` as part of finishing the task. First check project (`<repo>/.claude/skills/`) and personal (`~/.claude/skills/`) skills and update an overlapping one in place. Project scope for repo-specific knowledge, personal scope for cross-project habits. Skip one-offs and plain facts.
+## Skills and memory: you own them
+I don't read, curate or approve skills and memory. You manage them fully, without asking, as part of the work.
+- **Skills** (`~/.claude/skills/`, `<repo>/.claude/skills/`): after a repeatable, non-trivial procedure (judged by what you actually did), create or update one with `skill-creator`. First check for an overlapping skill and update it in place: project scope for repo knowledge, personal for cross-project habits; skip one-offs and plain facts. When you use a skill and it is wrong, long or stale, fix it then: correct, shorten, split, merge. A skill for one task only gets `expires: YYYY-MM-DD` in its frontmatter.
+- **Memory** (auto-memory + `MEMORY.md`, the vault for personal facts, claude-mem `work_state`): write what you learned that the code and git don't record. When you rely on a note, check it against reality (code, host, git, the endpoint) and fix or archive it on the spot. Absolute dates only. A fact true only for a while gets `expires: YYYY-MM-DD`.
+- **Removing = archiving**: move the file to `~/.claude/archive/<YYYY-MM-DD>/<same path under ~>` and drop its index line. That's yours to do; it is not "deleting my files". Never archive a safety rule (money paths, deletion, force-push, retired hosts) or a note that is the only record of an incident: propose those.
+- Expired and long-unused skills are archived by the weekly `setup-self-improve` run, and stale or expired memory by `memory-staleness-audit`. Both act; they don't propose.
+- Each change gets one line in your final summary ("skill X: shortened", "memory Y: archived, host retired").
 When I corrected your approach during a task, write the lesson down in that same turn, before the final message: update the skill that led you wrong, or save a feedback memory (what I said, why, how to apply). A correction I had to make twice becomes a skill or rule line. Never weaken a safety rule this way (money paths, deletion, force-push, retired hosts): propose that instead. The weekly `setup-self-improve` run catches what a session missed.
 
 ## Typo Check

@@ -12,7 +12,7 @@ Paths: state in `~/.claude/self-improve/` (`skill-usage.jsonl` and `sessions.jso
 ## Guards (read before changing anything)
 
 - **Allowed alone**, with a backup and a line in the report: new skills, edits to skills, project `CLAUDE.md` / `.claude/rules/`, agents, hooks and their tests, memory notes.
-- **Proposals only** (asked in the report, applied after a yes): deleting or disabling a skill, rule, agent, hook or memory note; any edit to `~/.claude/CLAUDE.md`; any new permission prompt.
+- **Proposals only** (asked in the report, applied after a yes): deleting or disabling a rule, agent or hook; any edit to `~/.claude/CLAUDE.md`; any new permission prompt. Skills and memory notes are not proposals: the owner handed them over (CLAUDE.md "Skills and memory: you own them"). Archive them yourself by moving to `~/.claude/archive/<date>/<same path under ~>` and list each move in the report.
 - **Never weaken a safety rule** by self-edit — money paths, payments, order size, deletion, force-push, retired hosts, the "keep operational preconditions verbatim" rule. Such a change is always a proposal, even when it looks like cleanup.
 - A rule or skill section you create cites its evidence: the session id(s) or digest file it came from.
 - At most 5 new skills per run. Prefer updating an overlapping skill over adding one.
@@ -51,7 +51,7 @@ For each confirmed finding, pick one:
 - **Global rule** → a proposal only: write the exact diff into the report.
 
 Then the dead-weight pass:
-- `skill-usage.md` lines marked `UNUSED` → one deletion proposal listing them (or `skillOverrides: name-only` as the softer option). Skip skills the owner runs by hand on a schedule.
+- `skill-usage.md` lines marked `UNUSED`, and skills whose `expires:` date has passed → archive them (move, as above), except skills the owner runs by hand on a schedule. Archived skills can come back with a plain `mv`.
 - Memory notes that contradict a skill or reference on a money rule (2026-11-12: a feedback note "SL always from the anchor" next to a backtest safe set with SL from the fill) → a question for the owner, never a self-edit.
 - Rules that never fired or contradict each other (read `~/.claude/CLAUDE.md`, the task contract in `~/.claude/hooks/task-contract.py`, project `CLAUDE.md` files touched this week) → proposals.
 - Project `CLAUDE.md` over 200 lines (`docs/best-practice-audit-2026-11.md` #2) → trim at most one per run: move procedures into a skill, keep warnings verbatim. Run `git status` in that repo first: the working-tree file is what loads, and a trim already sitting uncommitted (2026-11-16: two trading-service repos since 10-21) is a question for the owner, not a second trim.
