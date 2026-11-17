@@ -79,6 +79,8 @@ def skills_in(d):
 # Measured 2026-11-17: up-front questions came after 2-9 calls of looking first, mid-task ones after 26-140.
 MID_ASK_CALLS = 15
 EDITS = ("Write", "Edit", "MultiEdit", "NotebookEdit")
+# writes to real files only: redirects into /tmp, /dev or a $VAR (temp logs) do not count
+BASH_EDIT = re.compile(r"\bsed\s+-i|(?<![<>&0-9])>>?\s*(?![\s&>]|/tmp|/private/tmp|/dev/|\$)\S|\btee\s+(?:-a\s+)?(?!/tmp|/dev/|\$)\S|\bgit\s+(?:commit|apply)\b")
 
 
 def parse(path):
@@ -131,13 +133,14 @@ def parse(path):
                     if x.get("type") == "tool_use":
                         calls_since_prompt += 1
                         agents += x.get("name") == "Agent"
-                        edited = edited or x.get("name") in EDITS
+                        edited = edited or x.get("name") in EDITS or (
+                            x.get("name") == "Bash" and bool(BASH_EDIT.search(str((x.get("input") or {}).get("command", "")).replace("2>&1", "").replace(">/dev/null", ""))))
                     if x.get("type") == "tool_use" and x.get("name") == "AskUserQuestion":
                         # CLAUDE.md: questions go in the first reply, after looking, before changing anything.
                         if edited or calls_since_prompt > MID_ASK_CALLS:
                             mid_asks += 1
                             labels = json.dumps((x.get("input") or {}).get("questions") or [], ensure_ascii=False)
-                            mid_recommended += "Recommended" in labels or "Рекомендовано" in labels
+                            mid_recommended += "Recommended" in labels or "Рекоменд" in labels
                         else:
                             early_asks += 1
                         qs = (x.get("input") or {}).get("questions") or []

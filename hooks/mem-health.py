@@ -51,8 +51,9 @@ def from_log(log_dir):
         f.seek(max(0, size - TAIL_BYTES))
         data = f.read()
     now = time.time()
-    first_fail = None
-    answered_after = False
+    # The harmless pattern is WARN followed by STORED seconds later. A real failure is a WARN older than the grace
+    # period with no STORED after it, even when STOREDs came earlier in the hour.
+    last_fail, last_ok = None, None
     for line in data.split(b"\n"):
         is_fail = b"[OAUTH" in line and any(m in line for m in FAIL_MARKS)
         is_ok = not is_fail and any(m in line for m in OK_MARKS)
@@ -65,11 +66,11 @@ def from_log(log_dir):
         age = now - ts
         if age > WINDOW_S:
             continue
-        if is_fail and first_fail is None and age > GRACE_S:
-            first_fail = ts
-        elif is_ok and first_fail is not None and ts >= first_fail:
-            answered_after = True
-    if first_fail is not None and not answered_after:
+        if is_fail and age > GRACE_S:
+            last_fail = ts if last_fail is None else max(last_fail, ts)
+        elif is_ok:
+            last_ok = ts if last_ok is None else max(last_ok, ts)
+    if last_fail is not None and (last_ok is None or last_ok < last_fail):
         return "OAUTH WARN in the last hour, nothing stored after it"
     return None
 

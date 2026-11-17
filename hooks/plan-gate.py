@@ -15,8 +15,12 @@ import json
 import re
 import sys
 
-EXEMPT = {"Explore", "scout", "money-reviewer", "critical-reviewer", "reviewer", "verifier", "web-fetch", "claude-code-guide", "statusline-setup"}
-BASH_WRITE = re.compile(r"""(?:>>?|\btee(?:\s+-a)?)\s*["']?[^\s"'|;&]*/\.plans/""")
+EXEMPT = {"Explore", "Plan", "scout", "money-reviewer", "critical-reviewer", "reviewer", "verifier", "web-fetch", "claude-code-guide", "statusline-setup"}
+# A Bash write into a plan path: redirect, tee, cp/mv/install/touch target, or python open(..., 'w'); relative paths too.
+PLANS = r"""(?:^|[\s"'=/(])\.plans/"""
+BASH_WRITE = re.compile(r"""(?:>>?|\btee(?:\s+-a)?)\s*["']?[^\s"'|;&]*""" + PLANS[:-8] + r"""\.plans/"""
+                        r"""|\b(?:cp|mv|install|touch)\b[^|;&]*""" + PLANS
+                        + r"""|open\([^)]*\.plans/[^)]*['"][wa]""")
 REASON = (
     "Plan file first (CLAUDE.md Orchestration): before starting worker agents, write `.plans/<YYYY-MM-DD>-<slug>.md` "
     "at the workspace top, outside any git repo (goal, what proves done, the owner's answers, steps todo/doing/done). "
@@ -34,7 +38,7 @@ def scan(path, current_id):
         return True, 0  # no transcript to read: never block on our own blind spot
     with f:
         for line in f:
-            if '"tool_use"' not in line or ("/.plans/" not in line and '"Agent"' not in line):
+            if '"tool_use"' not in line or (".plans/" not in line and '"Agent"' not in line):
                 continue
             try:
                 d = json.loads(line)
@@ -45,8 +49,8 @@ def scan(path, current_id):
                     continue
                 name, inp = x.get("name"), x.get("input") or {}
                 if name == "Agent" and x.get("id") != current_id:
-                    agents += 1
-                elif name in ("Write", "Edit", "MultiEdit") and "/.plans/" in str(inp.get("file_path", "")):
+                    agents += (str(inp.get("subagent_type") or "general-purpose").split(":")[-1] not in EXEMPT)
+                elif name in ("Write", "Edit", "MultiEdit") and ".plans/" in str(inp.get("file_path", "")):
                     plan = True
                 elif name == "Bash" and BASH_WRITE.search(str(inp.get("command", ""))):
                     plan = True
