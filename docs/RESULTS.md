@@ -91,6 +91,10 @@ Earlier versions of the rules, kept for the history. Tokens are input-equivalent
 - **Automatic bug records vs. failure classes:** of 95 `bugfix` records in 14 days, 21 were about money code. 7 were covered by the reviewer's classes, 3 partly, 11 not, which gave 5 new classes. Sorted by hand from titles and the start of each record.
 - **A record is not a fix.** One record said a bug was guarded, but the fix existed only in a benchmark arm and was never merged. Check the code, not the record.
 
+## Rework recheck (2026-11-16)
+
+43 real sessions from 2026-10-31 to 2026-11-16, classified by one agent: **51% needed rework, against 26% before.** Small sample and one classifier run, so a weak signal, but it points the wrong way. Top causes: the owner had to say "check it yourself", research and backtests ran with an unstated scope, and long operations sessions kept getting "did it work?". Each became a rule (verify it yourself, state the assumed scope up front, ask questions only up front). Next comparison: 2026-12-07.
+
 ## Not measured
 
-Whether the current short rules and the task contract hook reduce rework on real work. They have not been through the A/B test either. The next step is to classify new sessions and compare the rework share per type.
+Whether the current rules and hooks beat one plain session in the A/B test: they have not been through it.
