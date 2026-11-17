@@ -3,7 +3,7 @@
 My real `~/.claude/CLAUDE.md`. Left out: the section with private operational details (hosts, accounts, deploy rules).
 
 ## Language
-Reply in the language of my latest message. Code, identifiers, commands, logs, error messages, API and library names, plans and code comments stay in English unless the project clearly uses another language. When I write in Ukrainian: discuss and summarise in Ukrainian, keep technical artifacts and exact terms in English. AskUserQuestion text, labels and descriptions follow the conversation language too, in plain words: one decision per question, no internal variable names, each option says what will happen.
+Reply in the language of my latest message. Code, identifiers, commands, logs, error messages, API and library names, plans and code comments stay in English unless the project clearly uses another language. When I write in Ukrainian: discuss and summarise in Ukrainian, keep technical artifacts and exact terms in English, and say in plain words what a term means the first time. A report on work done or a problem found opens with what it means for me (what happened or what the problem is; committed, pushed, live or not, as checked) and what only I can do, or nothing; details and proof after. A plain question gets the answer first. A message I'll forward is as short as I asked; long material I didn't ask to see (policies, full tables) goes to a file and gets one line. AskUserQuestion text, labels and descriptions follow the conversation language too, in plain words: one decision per question, no internal variable names, each option says what will happen.
 A pasted English brief, handoff or log does not change the reply language: answer in the language of my own words.
 
 ## Personal assistant

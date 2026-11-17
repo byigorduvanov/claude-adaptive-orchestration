@@ -123,6 +123,33 @@ Difference +4.3 points, 95% CI −11..+20: no measurable change. The three class
 
 **Lesson:** the 2026-11-16 recheck reported "26% → 51%". It compared a three-agent classification of about 700 older sessions with a one-agent classification of 43 new ones. Classified together, blind, the gap shrinks to noise. Compare periods only inside one classification run.
 
+## Causes of rework, and a replay of two fixes (2026-11-17)
+
+The 24 "after" sessions flagged as rework by the majority above were split into 96 rework moments: an owner prompt that corrects, repeats or asks for proof. Each moment got one cause class from four Sonnet agents that read the transcript, or the claude-mem notes where the transcript was gone (12 of 24). Two sessions turned out to be false positives (a prompt sent twice; "continue" after an outage).
+
+| Cause | Moments | Sessions | Already covered by a rule? |
+|---|---|---|---|
+| Wrong approach (misread goal, wrong data or scope) | 20 | 12 | partly: "say the scope you assume" (11-17) |
+| Stopped early, ended on a "not done" list it could do itself | 15 | 11 | no |
+| Report hard to follow: jargon, wall of detail, no "what do I do" | 13 | 7 | no |
+| Asked what it could find or decide itself | 11 | 9 | yes: "questions go up front" (11-17) |
+| Claimed without proof | 9 | 7 | yes: "verify it yourself" (11-12), "break it first" (11-17) |
+| Unasked change | 7 | 6 | no |
+| Slow, no ETA or cost estimate | 6 | 5 | partly: ETA rule (11-11, after all 5); no rule on limit cost |
+| Harness, limit, outage | 6 | 6 | n/a |
+| Replied in English after a pasted English brief | 4 | 4 | yes since 11-12 (3 of 4 cases were before it) |
+
+Two fixes for the top uncovered causes were replayed on real moments with headless `claude -p` (Opus 5.5, effort high, no tools), current rules vs current rules + fix, 3 runs per case and arm, on the app account. Two blind Sonnet graders saw six shuffled outputs per case plus the owner's real next prompt; they agreed on 98 of 102 main grades.
+
+| Fix | Cases | Before | After | Kept? |
+|---|---|---|---|---|
+| **A.** Report opens with what it means for me and what I must do; terms explained the first time; forwardable messages short | 8 | plain-words score 2.10 / 3; owner's follow-up made unnecessary 0.47 | 2.85 (better in 8 of 8 cases); 0.56; facts and proof kept 100% in both | **yes** |
+| **B.** Before ending a turn, do what you still can; a "not done" list only holds what waits on the owner | 6 + 3 exempt | follow-up covered 0.17; owner-only action taken in exempt cases 4 / 18 | 0.18; 6 / 18 | **no**: no effect, slightly more overreach |
+
+After a fresh review the kept wording was narrowed (only reports on work done or a problem found; "live" only as checked; proof stays in the reply; a plain question gets the answer first) and replayed again on the same 8 cases with a third blind grader: plain-words score 2.29 → 2.88, better in 6 of 8 cases, worse in none; facts kept 1.00 → 0.98.
+
+What the replay cannot show: B's failure happens when the model decides on its own to stop. Asked directly "send or continue?", it chose "continue" in 16 of 18 target runs already without the fix, so the replay could not reproduce the failure. A's "as short as I asked" part did not work: a two-line message for a colleague stayed ~2.5k characters with and without it.
+
 ## Not measured
 
 More than one run per arm, and a broad multi-part task on the current rules.
