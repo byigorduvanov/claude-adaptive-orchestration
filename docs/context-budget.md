@@ -93,3 +93,21 @@ Findings:
   seven research skills `name-only`.
 - Still large and fixed: app system prompt (~31k chars) and app-injected tools.
 - The task-contract hook adds ~0.5k tokens to every user message, not once per session.
+
+
+## Third pass: skill listing (2026-11-17)
+
+Skills the owner no longer used were cut by usage (30+ days or never seen), with `name-only`
+for rare incident/ops skills whose name says what they do (`htf-box-disk-cleanup`,
+`htf-clw-feed-restore`, ...) and the used incident skills (`htf-trade-postmortem`,
+`htf-telegram-alert-triage`) kept with full descriptions. Probe-to-probe on the same setup:
+
+| Probe | First request | Skill listing |
+|---|---|---|
+| Before | 46,952 tokens | 23,611 chars |
+| After (8 skills → `name-only`, 3 dead skills archived) | **46,210** (−742) | 21,666 chars (−1,945) |
+
+Finding: the personal skills are now ~5.8k chars of the listing; the other ~12k chars are
+plugin skills (`claude-mem:*`, `anthropic-skills:*`), which `skillOverrides` cannot touch, so
+further cuts need disabling a plugin. Skills holding a safety rule (force-push confirmation,
+"never copy credentials") stay on disk as `off`, never archived.
