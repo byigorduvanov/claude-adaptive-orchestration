@@ -150,6 +150,17 @@ After a fresh review the kept wording was narrowed (only reports on work done or
 
 What the replay cannot show: B's failure happens when the model decides on its own to stop. Asked directly "send or continue?", it chose "continue" in 16 of 18 target runs already without the fix, so the replay could not reproduce the failure. A's "as short as I asked" part did not work: a two-line message for a colleague stayed ~2.5k characters with and without it.
 
+### Can a Stop hook catch "ended on a not-done list"? (2026-11-18)
+
+Measured on final messages before any hook was written, threshold set in advance: catch most known cases, fire on at most 5% of turns in sessions with no rework.
+
+| Detector | Known cases caught | Fires on clean turns (68) | Exempt cases (should pass, 3) |
+|---|---|---|---|
+| Keyword regex (uk/en/ru "not done / didn't wait / left") | 3 / 6 | 10 = 15% | — |
+| Haiku judge on the final message | 4 / 6 | 48 = 71% | blocks 2 |
+
+Neither passes, so no hook. Half the known cases are omissions (a venue left out, commit state not said), not a "not done" list, so no text pattern sees them. The step-6 text rule stays at the owner's request; its effect is checked in the next blind rework recheck (share of "stopped early" moments after 2026-11-18).
+
 ## Not measured
 
 More than one run per arm, and a broad multi-part task on the current rules.
