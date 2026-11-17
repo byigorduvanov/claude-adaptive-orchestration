@@ -219,7 +219,7 @@ Shortened here; [the script](hooks/task-contract.py) has the full text. Why a ho
 
 **Tried and dropped:** a Stop hook for "code edited, nothing run after it". Replayed on 842 past turns, it would have fired on 4 of 47 turns with edits, none on trading code. Rework comes from weak proof, not from missing runs.
 
-**Replaced:** an earlier `PreToolUse` guard script against force push. Force push is now an `ask` permission rule in [`settings.example.json`](config/settings.example.json), so Claude Code itself asks before it runs.
+**Replaced:** an earlier `PreToolUse` guard script against force push. Force push is now an `ask` permission rule in [`settings.example.json`](config/settings.example.json), so Claude Code itself asks before it runs. Live probe 2026-11-17 (headless `claude -p` in bypassPermissions, throwaway repo with a local bare remote): asks for `--force`, `-f`, `--force-with-lease`, `+refspec` (quoted too), `--force` at the end, `git -C`/`git -c` forms and an env prefix; plain `push` and `--follow-tags` run. Two holes the probe found (`git -C w push -f`, `git -C w push +HEAD:main`) are closed. Known gaps: combined short flags (`-uf`) run without asking, and force set outside the command (aliases, `remote.*.push` config) is invisible to string rules; a commit message that contains `push --force` asks needlessly.
 
 ### Plan gate
 
