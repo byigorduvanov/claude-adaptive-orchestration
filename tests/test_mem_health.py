@@ -14,6 +14,27 @@ failures = 0
 checks = 0
 WARN = "[WARN ] [OAUTH ] Refusing to inject expired CLAUDE_CODE_OAUTH_TOKEN: The Claude Code login in the credential store has expired. {expiresAt=1790554711012}"
 STORED = "[INFO ] [DB    ] [session-1] STORED | sessionDbId=1 | obsCount=1 | obsIds=[1] | summaryId=none"
+# Line shapes copied from ~/.claude-mem/logs/claude-mem-2026-11-17.log. A real observer generation logs
+# ENQUEUED -> "Generator auto-starting" -> WARN -> "Starting SDK query" within milliseconds (22:59:47, 23:05:47).
+ENQ = "[INFO ] [QUEUE ] [session-921] ENQUEUED | sessionDbId=921 | messageId=2392 | type=observation | tool=Bash(ls) | depth=1"
+GEN_START = "[INFO ] [SESSION] [session-921] Generator auto-starting (observation) using Claude SDK {queueDepth=1, historyLength=0}"
+SDK_QUERY = "[INFO ] [SDK   ] Starting SDK query {sessionDbId=921, contentSessionId=9b92d4cb-5d72-4e1a-9332-cbf68cff5570, hasRealMemorySessionId=false, shouldResume=false, resume_parameter=(none - fresh start), "
+RESPONSE = "[INFO ] [SDK   ] [session-921] \u2190 Response received (2655 chars) {promptNumber=4} <observation>"
+STORED_REAL = "[INFO ] [DB    ] [session-921] STORED | sessionDbId=921 | memorySessionId=3da7576f-73f6-4bda-a913-29ee76ad0b4d | obsCount=1 | obsIds=[33091] | summaryId=none"
+# Worker / scheduled agent-run spawns (21:20:59, 21:21:19, 22:11:03): a WARN with no generator, nothing to store.
+AGENT_RUN = "[INFO ] [WORKER] Agent run (scheduled) starting on claude-code"
+PID_LIVE = "[INFO ] [SYSTEM] Worker PID file points to a live process, skipping duplicate spawn"
+READY = "[INFO ] [SYSTEM] Worker became ready while waiting on live PID"
+
+
+def gen_warn(minutes_ago):
+    """One observer generation spawn with its OAUTH WARN, as the worker logs it."""
+    return [(minutes_ago, ENQ), (minutes_ago, GEN_START), (minutes_ago, WARN), (minutes_ago, SDK_QUERY)]
+
+
+def idle_warn(minutes_ago):
+    """A worker-side spawn: WARN, then only 'Worker became ready'."""
+    return [(minutes_ago, AGENT_RUN), (minutes_ago, WARN), (minutes_ago, PID_LIVE), (minutes_ago, READY)]
 
 
 def check(ok, what):
@@ -72,22 +93,46 @@ code, out, _ = case(health("auth_invalid", 5, None))
 check("auth is broken" in out, "auth error with no success ever -> line")
 code, out, _ = case(health("quota_exhausted", 5, 60))
 check(out == "", f"quota is not an auth failure -> silent ({out[:60]})")
-code, out, _ = case(None, [(40, WARN), (20, WARN), (10, WARN)])
+code, out, _ = case(None, gen_warn(40) + gen_warn(20) + gen_warn(10))
 check("auth is broken" in out and "OAUTH" in out, f"OAUTH WARN in the last hour, nothing stored after it -> line ({out[:100]})")
-code, out, _ = case(None, [(90, WARN), (80, WARN)])
+code, out, _ = case(None, gen_warn(90) + gen_warn(80))
 check(out == "", "WARN older than an hour -> silent")
-code, out, _ = case(None, [(0.2, WARN)])
+code, out, _ = case(None, gen_warn(0.2))
 check(out == "", "a WARN from seconds ago may still be followed by STORED -> silent")
-code, out, _ = case(None, [(40, WARN), (39.9, "[INFO ] [SDK   ] [session-2] <- Response received (900 chars)")])
+code, out, _ = case(None, gen_warn(40) + [(39.9, "[INFO ] [SDK   ] [session-2] <- Response received (900 chars)")])
 check(out == "", "a response after the WARN proves auth works -> silent")
 code, out, _ = case(None, None)
 check(code == 0 and out == "", "no files at all -> silent, exit 0")
 code, out, _ = case(None, None, raw_health="{not json")
 check(code == 0 and out == "", "corrupt health file -> silent, exit 0")
 # Review 2026-11-17: a failure that starts after an earlier success in the same hour must still be caught
-code, out, _ = case(None, [(50, WARN), (49, STORED), (5, WARN)])
+code, out, _ = case(None, gen_warn(50) + [(49, STORED)] + gen_warn(5))
 check("auth is broken" in out, f"WARN, STORED, then WARN 5 min ago with nothing after -> line ({out[:60]})")
-code, out, _ = case(None, [(49, STORED), (20, WARN), (10, WARN)])
+code, out, _ = case(None, [(49, STORED)] + gen_warn(20) + gen_warn(10))
 check("auth is broken" in out, "STORED early, then only WARNs for 20 min -> line")
+# Regression 2026-11-17 22:59: idle-worker WARNs (no generator, nothing queued) raised a false alarm.
+code, out, _ = case(None, idle_warn(38) + idle_warn(37.7) + idle_warn(10))
+check(code == 0 and out == "", f"idle-worker WARNs only (no generator) -> silent ({out[:60]})")
+code, out, _ = case(None, [(55, STORED)] + idle_warn(38) + idle_warn(10))
+check(out == "", f"STORED, then idle-worker WARNs only -> silent ({out[:60]})")
+code, out, _ = case(None, idle_warn(40) + gen_warn(1) + [(0.85, RESPONSE), (0.85, STORED_REAL)])
+check(out == "", f"idle WARNs, then generator WARN followed by STORED (22:59:47 shape) -> silent ({out[:60]})")
+code, out, _ = case(None, idle_warn(40) + gen_warn(10))
+check("auth is broken" in out, f"generator WARN with nothing after it -> line ({out[:60]})")
+code, out, _ = case(None, gen_warn(10)[1:] )
+check("auth is broken" in out, "generator WARN without ENQUEUED line still counts -> line")
+code, out, _ = case(None, gen_warn(20) + [(19.8, STORED_REAL)] + idle_warn(5))
+check(out == "", f"generator answered, later idle-worker WARN -> silent ({out[:60]})")
+code, out, _ = case(None, [(10, WARN), (6, SDK_QUERY)])
+check(out == "", "generator start minutes away from the WARN does not claim it -> silent")
+# Logged commands quote the marks; only the tagged event counts (44 such lines in the 2026-11-17 log).
+QUOTE_GEN = "[INFO ] [QUEUE ] [session-959] ENQUEUED | sessionDbId=959 | messageId=2399 | type=observation | tool=Bash(grep -E 'Generator auto-starting|Starting SDK query|[OAUTH ] Refusing to inject expired' x.log) | depth=1"
+QUOTE_OK = "[INFO ] [HOOK  ] \u2192 PostToolUse: Bash(grep -E 'STORED \\||Response received' x.log)"
+code, out, _ = case(None, idle_warn(10) + [(10, QUOTE_GEN)])
+check(out == "", f"idle WARN next to a logged command quoting generator marks -> silent ({out[:60]})")
+code, out, _ = case(None, gen_warn(10) + [(9, QUOTE_OK)])
+check("auth is broken" in out, "generator WARN, then only a logged command quoting STORED -> line")
+code, out, _ = case(None, [(10, QUOTE_GEN), (10, QUOTE_GEN)])
+check(out == "", "a quoted OAUTH WARN is not a WARN -> silent")
 print(f"mem-health: {checks} checks, {failures} failed")
 sys.exit(1 if failures else 0)

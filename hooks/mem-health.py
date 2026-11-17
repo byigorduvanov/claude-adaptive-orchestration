@@ -4,9 +4,12 @@
 Signals (either one):
 1. observer-health.json: lastErrorKind is an auth kind and lastErrorAt is newer than lastSuccessAt.
 2. The newest claude-mem log: an OAUTH "Refusing to inject expired" / "Not logged in" line in the
-   last hour with no STORED or "Response received" after it. Under the app-token wrapper
+   last hour that belongs to an observer generation ("Generator auto-starting" / "Starting SDK query"
+   within GEN_NEAR_S of it) with no STORED or "Response received" after it. Under the app-token wrapper
    (skill claude-mem-observer-auth-heal, 4c) that WARN appears on every spawn while the observer
-   works, so a WARN alone is not a failure; a WARN with nothing answered after it is.
+   works, so a WARN alone is not a failure; a generator WARN with nothing answered after it is.
+   Worker / scheduled agent-run spawns log the same WARN with no generator and nothing to store
+   ("Worker became ready while waiting on live PID"); they are ignored.
 
 Always exits 0. Paths: MEM_HEALTH_FILE, MEM_LOG_DIR (defaults under ~/.claude-mem).
 """
@@ -14,6 +17,7 @@ import datetime as dt
 import glob
 import json
 import os
+import re
 import sys
 import time
 
@@ -22,7 +26,11 @@ WINDOW_S = 3600
 GRACE_S = 120  # a spawn this recent may still be answered
 TAIL_BYTES = 2 * 1024 * 1024
 FAIL_MARKS = (b"Refusing to inject expired", b"Not logged in")
-OK_MARKS = (b"STORED", b"Response received")
+GEN_MARKS = (b"Generator auto-starting", b"Starting SDK query")
+# "[ts] [LEVEL] [TAG   ] [session-N] message": marks count only in the message of their own tag, so a logged command
+# that quotes them (ENQUEUED ... tool=Bash(grep STORED ...), PostToolUse) is not mistaken for the event itself.
+LINE = re.compile(rb"\[(\d{4}-\d\d-\d\d \d\d:\d\d:\d\d)[.\d]*\] \[\w+ *\] \[(\w+) *\] (?:\[session-\d+\] )?")
+GEN_NEAR_S = 2  # the generator logs its start and the WARN within milliseconds of each other
 
 
 def from_health(path):
@@ -50,26 +58,35 @@ def from_log(log_dir):
         size = f.tell()
         f.seek(max(0, size - TAIL_BYTES))
         data = f.read()
-    now = time.time()
-    # The harmless pattern is WARN followed by STORED seconds later. A real failure is a WARN older than the grace
-    # period with no STORED after it, even when STOREDs came earlier in the hour.
-    last_fail, last_ok = None, None
+    return scan(data, time.time())
+
+
+def scan(data, now):
+    # The harmless pattern is a generator WARN followed by STORED seconds later. A real failure is a generator WARN
+    # older than the grace period with no STORED after it, even when STOREDs came earlier in the hour.
+    fails, oks, gens = [], [], []
     for line in data.split(b"\n"):
-        is_fail = b"[OAUTH" in line and any(m in line for m in FAIL_MARKS)
-        is_ok = not is_fail and any(m in line for m in OK_MARKS)
-        if not (is_fail or is_ok) or not line.startswith(b"[20"):
+        m = LINE.match(line)
+        if not m:
+            continue
+        tag, msg = m.group(2), line[m.end():]
+        if tag == b"OAUTH" and any(k in msg for k in FAIL_MARKS):
+            bucket = fails
+        elif (tag == b"DB" and msg.startswith(b"STORED")) or (tag == b"SDK" and b"Response received" in msg[:40]):
+            bucket = oks
+        elif tag in (b"SESSION", b"SDK") and msg.startswith(GEN_MARKS):
+            bucket = gens
+        else:
             continue
         try:
-            ts = dt.datetime.strptime(line[1:20].decode(), "%Y-%m-%d %H:%M:%S").timestamp()
+            ts = dt.datetime.strptime(m.group(1).decode(), "%Y-%m-%d %H:%M:%S").timestamp()
         except ValueError:
             continue
-        age = now - ts
-        if age > WINDOW_S:
-            continue
-        if is_fail and age > GRACE_S:
-            last_fail = ts if last_fail is None else max(last_fail, ts)
-        elif is_ok:
-            last_ok = ts if last_ok is None else max(last_ok, ts)
+        if now - ts <= WINDOW_S + GEN_NEAR_S:
+            bucket.append(ts)
+    last_fail = max((t for t in fails if GRACE_S < now - t <= WINDOW_S
+                     and any(abs(g - t) <= GEN_NEAR_S for g in gens)), default=None)
+    last_ok = max((t for t in oks if now - t <= WINDOW_S), default=None)
     if last_fail is not None and (last_ok is None or last_ok < last_fail):
         return "OAUTH WARN in the last hour, nothing stored after it"
     return None
