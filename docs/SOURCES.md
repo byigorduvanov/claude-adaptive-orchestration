@@ -1,6 +1,6 @@
 # Sources
 
-Read in October 2026.
+Read in October 2026. The per-task workflow assembled from Anthropic's pages (2026-11-17) is in [anthropic-workflow.md](anthropic-workflow.md).
 
 **Anthropic**
 - [When to use multi-agent systems (and when not to)](https://claude.com/blog/building-multi-agent-systems-when-and-how-to-use-them): 3–10× tokens; context protection, parallelization, specialization; split by context, not work type; "The primary benefit of parallelization is thoroughness, not speed."

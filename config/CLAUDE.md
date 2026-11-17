@@ -20,13 +20,25 @@ At most 20 agents per workflow or per turn. Verify claims in batches per agent, 
 
 ## Orchestration
 Work in one session by default. Add an agent only when evidence supports it.
-- Before starting, say in 1–2 lines: what proves this is done, what can run at once, what is expensive to get wrong.
+On every task message you build the workflow yourself; I will not tell you whether to use a file, agents, which agents, or how. The loop (Anthropic's, sources in the public repo `docs/anthropic-workflow.md`):
+1. Read the request, then look in code, logs, memory and git before asking anything. Name the check that will prove done.
+2. Ask only what you can't find there, all in your first reply, then work. If the task is vague or big, interview me, write my answers into the plan file, and build in a fresh session.
+3. Pick the shape and say it in 1–2 lines: what proves done, what runs at once, what is expensive to get wrong.
+   - Solo is the default.
+   - Use a subagent for a wide search, noisy output or a fresh-eyes review. It buys parallelism, not a smarter answer.
+   - Run in parallel only independent parts on different files.
+   - Use a workflow when the job outgrows a handful of agents.
+   - Use a plan file (below) when the task is big.
+   - Don't use plan mode: it stops and waits for my approval.
+4. Work in small steps, each followed by its check.
+5. Verify: run the check and quote the command and its output. Give large diffs a fresh reviewer against the spec ("skip style"), as in the review rules below.
+6. Finish: the summary lists every "decided X because Y". Write lessons down and stop your processes.
 - Done means proven: the command and its output, or a trade id and log line.
 - On a diff that can move money, run one fresh `critical-reviewer` in the background with explicit criteria, "skip style". Ask it to name the class of bug, so every instance gets fixed. Re-check only the new diff. Stop after 3 rounds and rethink; on ordinary money fixes one re-check is enough. If you skip it, say so.
 - Agents are for truly independent parts (a broad audit, a large migration), or for noisy output returned as a short summary. Writers stay in one thread. Give paths, ask for up to ~25 lines. A fork inherits this conversation: use it for a side task that needs this context, never for a reviewer, who must not see the reasoning.
 - When a real money incident or a confirmed money bug is understood, add its failure class and an eval case without being asked: skill `reviewer-evals`.
 - Tests and sweeps print a few lines and log details to a file.
-- **Plan file for big tasks only**: agents, many hours, more than one session, or I said I'm leaving. A short task stays on the app's task list, with no file. Before the first step, write `.plans/<YYYY-MM-DD>-<slug>.md` at the workspace top, never inside a git repo (in hft: `~/work/hft/.plans/`). It holds: goal; what proves done; my answers and every "decided X because Y"; steps marked `todo` / `doing` / `done: <proof>` / `blocked: <why>`. Only the main session edits it, after each step: a step is `done` only with its proof. Agents get its path to read and write long output to `.plans/<slug>/<agent>.md`, returning the path and ≤25 lines. Add one claude-mem `work_state` item pointing to the file, so the next session sees the open task at start. Close the item when the plan is done. A new or compacted session reads the plan before doing anything.
+- **Plan file for big tasks only**, and you decide when a task is big (agents, many hours, more than one session, risk of losing context); I won't tell you. A short task stays on the app's task list, with no file. Before the first step, write `.plans/<YYYY-MM-DD>-<slug>.md` at the workspace top, never inside a git repo (for example `~/work/<workspace>/.plans/`). It holds: goal; what proves done; my answers and every "decided X because Y"; steps marked `todo` / `doing` / `done: <proof>` / `blocked: <why>`. Only the main session edits it, after each step: a step is `done` only with its proof. Agents get its path to read and write long output to `.plans/<slug>/<agent>.md`, returning the path and ≤25 lines. Add one claude-mem `work_state` item pointing to the file, so the next session sees the open task at start. Close the item when the plan is done. A new or compacted session reads the plan before doing anything.
 - A finding from an agent is a claim until checked; mark what is not verified.
 - Re-test these rules on each new model. Ask what you can stop doing.
 
