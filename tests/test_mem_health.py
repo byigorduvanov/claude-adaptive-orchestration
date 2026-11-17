@@ -67,7 +67,7 @@ def case(health=None, log=None, raw_health=None):
         name = dt.datetime.now().strftime("claude-mem-%Y-%m-%d.log")
         with open(os.path.join(logs, name), "w") as f:
             for minutes_ago, text in log:
-                f.write(f"{stamp(minutes_ago)} {text}\n")
+                f.write(f"{text}\n" if minutes_ago is None else f"{stamp(minutes_ago)} {text}\n")
     env = dict(os.environ, MEM_HEALTH_FILE=hp, MEM_LOG_DIR=logs)
     t0 = time.monotonic()
     r = subprocess.run([sys.executable, HOOK], input="{}", capture_output=True, text=True, env=env)
@@ -134,5 +134,43 @@ code, out, _ = case(None, gen_warn(10) + [(9, QUOTE_OK)])
 check("auth is broken" in out, "generator WARN, then only a logged command quoting STORED -> line")
 code, out, _ = case(None, [(10, QUOTE_GEN), (10, QUOTE_GEN)])
 check(out == "", "a quoted OAUTH WARN is not a WARN -> silent")
+# Review 2026-11-18, finding 1: the real failure is an explicit verdict, not only a silent WARN
+# (claude-mem-2026-11-02.log 15:56:59, session-863, OAuth token revoked).
+AUTH_RESP = "[INFO ] [SDK   ] [session-863] \u2190 Response received (95 chars) {promptNumber=11} Failed to authenticate: OAuth token revoked. Please log in again or contact your administrator."
+AUTH_PARSER = "[ERROR] [PARSER] [session-863] SDK authentication failed; run /login to preserve queued batch {outputClass=prose, remediation=/login, preview=Failed to authenticate: OAuth token revoked. Please log in aga"
+SPAWN_EXIT = "[WARN ] [SDK_SPAWN] [session-863] Claude process exited {code=1, signal=null, pid=5612}"
+AUTH_PAUSE = "[WARN ] [SESSION] [session-863] Generator paused for auth; preserving buffered work {pendingCount=1}"
+NOT_LOGGED = "[INFO ] [SDK   ] [session-863] \u2190 Response received (40 chars) {promptNumber=2} Not logged in \u00b7 Please run /login"
+AUTH_FAIL = [AUTH_RESP, AUTH_PARSER, SPAWN_EXIT, AUTH_PAUSE]
+code, out, _ = case(None, gen_warn(10) + [(10, t) for t in AUTH_FAIL])
+check("auth is broken" in out, f"11-02 shape: generator WARN, Response 'Failed to authenticate', PARSER, paused for auth -> line ({out[:60]})")
+code, out, _ = case(None, [(55, STORED)] + [(0.5, t) for t in AUTH_FAIL])
+check("auth is broken" in out, "explicit auth failure 30 s ago, no WARN at all -> line at once (no grace)")
+code, out, _ = case(None, [(0.5, AUTH_PAUSE)])
+check("auth is broken" in out, "'Generator paused for auth' alone -> line")
+code, out, _ = case(None, gen_warn(10) + [(10, NOT_LOGGED)])
+check("auth is broken" in out, "Response body 'Not logged in' is a failure, not a success -> line")
+code, out, _ = case(None, [(30, t) for t in AUTH_FAIL] + gen_warn(5) + [(4.9, STORED_REAL)])
+check(out == "", f"auth failure, then a later generation stored -> silent (recovered) ({out[:60]})")
+# Finding 2: laptop sleep (claude-mem-2026-11-16.log, 2026-11-17 02:35:29 WARN, 02:50:35 unanswered).
+UNANSWERED = "[WARN ] [SDK   ] [session-906] Observer prompt went unanswered; preserving the claimed batch and stopping this generation {waitedMs=180000, claimed=1}"
+TRANSPORT = "[WARN ] [SESSION] [session-906] Generator paused for transport; preserving buffered work {pendingCount=0, released=0}"
+code, out, _ = case(None, gen_warn(16) + [(1, UNANSWERED), (1, TRANSPORT)])
+check(out == "", f"generator WARN, then 'went unanswered' / 'paused for transport' -> silent, not auth ({out[:60]})")
+code, out, _ = case(None, gen_warn(30) + [(25, UNANSWERED)] + gen_warn(10))
+check("auth is broken" in out, "transport stall explains only earlier WARNs; a later unanswered generator WARN -> line")
+code, out, _ = case(None, gen_warn(16) + [(1, UNANSWERED)] + [(0.5, t) for t in AUTH_FAIL])
+check("auth is broken" in out, "transport stall does not hide an explicit auth failure -> line")
+# Finding 4: each generator mark alone is enough; pool wait puts 'Generator auto-starting' >2 s before the WARN.
+code, out, _ = case(None, [(10.4, GEN_START), (10, WARN), (10, SDK_QUERY)])
+check("auth is broken" in out, "pool wait: Generator auto-starting 24 s earlier, Starting SDK query adjacent -> line")
+code, out, _ = case(None, [(10, GEN_START), (10, WARN)])
+check("auth is broken" in out, "only 'Generator auto-starting' next to the WARN -> line")
+code, out, _ = case(None, [(10, WARN), (10, SDK_QUERY)])
+check("auth is broken" in out, "only 'Starting SDK query' next to the WARN -> line")
+code, out, _ = case(None, [(10, GEN_START), (10, QUOTE_GEN), (10, SDK_QUERY)])
+check(out == "", f"real generator start, WARN text only quoted in an ENQUEUED line -> silent ({out[:60]})")
+code, out, _ = case(None, gen_warn(10) + [(None, "[2099-01-01 00:00:00.000] [INFO ] [DB    ] [session-1] STORED | obsIds=[1]")])
+check("auth is broken" in out, "a future-dated STORED (quoted heredoc line) does not count -> line")
 print(f"mem-health: {checks} checks, {failures} failed")
 sys.exit(1 if failures else 0)
