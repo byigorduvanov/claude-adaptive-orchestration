@@ -27,7 +27,7 @@ D=/tmp/self-improve-$(date +%F)
 python3 ~/.claude/skills/setup-self-improve/scripts/collect.py --days 7 --out "$D"
 ```
 
-It prints `sessions=… batches=… skills=… unused=… history_from=…`. Outputs in `$D`: `sessions.md` (the reading list), `digests/<id>.md` (owner prompts, AskUserQuestion answers, skills used, Claude's last text per turn), `batches.txt` (digests grouped about 60k characters per batch), `skill-usage.md`, `summary.json`. If `history_from` is newer than 30 days ago, say so: "unused" then means unused since that date.
+It prints `sessions=… batches=… skills=… unused=… history_from=…`. Outputs in `$D`: `sessions.md` (the reading list), `digests/<id>.md` (owner prompts, AskUserQuestion answers, skills used, Claude's last text per turn), `batches.txt` (digests grouped about 60k characters per batch), `skill-usage.md`, `summary.json`. It also counts `early_asks` (AskUserQuestion within the first 3 tool calls after an owner prompt), `mid_asks` (later, in mid-task, against the "questions up front" rule) with `mid_ask_sessions`, and `agents` (Agent calls). Report `mid_asks` against the baseline of 16 mid vs 2 early (week to 2026-11-17, before the rule). Read every mid-ask session's question: if the rule allowed it (deletion, force-push, live infra teardown, order size, more money at risk), it's fine; if a recommended option existed, it's a miss. If `history_from` is newer than 30 days ago, say so: "unused" then means unused since that date.
 
 ## 2. Read the week (subagents, in parallel)
 

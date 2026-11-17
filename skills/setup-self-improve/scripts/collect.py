@@ -75,11 +75,15 @@ def skills_in(d):
     return [s.split(":")[-1] for s in out]
 
 
+MID_ASK_CALLS = 3
+
+
 def parse(path):
     """One pass over a transcript: digest pieces and skill uses with dates."""
     prompts, turns, asks, uses, title, cwd, first, last = [], [], [], [], None, None, None, None
     pending_ask = {}
     last_reply = None
+    calls_since_prompt, early_asks, mid_asks, agents = 0, 0, 0, 0
     try:
         f = open(path, encoding="utf-8", errors="ignore")
     except OSError:
@@ -110,6 +114,7 @@ def parse(path):
                     turns.append(last_reply)
                     last_reply = None
                 prompts.append(p)
+                calls_since_prompt = 0
                 continue
             msg = d.get("message") or {}
             content = msg.get("content")
@@ -119,7 +124,15 @@ def parse(path):
                         continue
                     if x.get("type") == "text" and x.get("text", "").strip():
                         last_reply = x["text"].strip()
+                    if x.get("type") == "tool_use":
+                        calls_since_prompt += 1
+                        agents += x.get("name") == "Agent"
                     if x.get("type") == "tool_use" and x.get("name") == "AskUserQuestion":
+                        # CLAUDE.md: questions go in the first reply. After MID_ASK_CALLS other tool calls it is mid-task.
+                        if calls_since_prompt > MID_ASK_CALLS:
+                            mid_asks += 1
+                        else:
+                            early_asks += 1
                         qs = (x.get("input") or {}).get("questions") or []
                         pending_ask[x.get("id")] = [q.get("question", "") for q in qs if isinstance(q, dict)]
             if d.get("type") == "user" and isinstance(content, list):
@@ -128,7 +141,8 @@ def parse(path):
                         asks.append((pending_ask.pop(x["tool_use_id"]), TAG.sub("", text_of(x.get("content")))[:600]))
     if last_reply:
         turns.append(last_reply)
-    return {"prompts": prompts, "turns": turns, "asks": asks, "uses": uses, "title": title, "cwd": cwd, "first": first, "last": last}
+    return {"prompts": prompts, "turns": turns, "asks": asks, "uses": uses, "title": title, "cwd": cwd, "first": first, "last": last,
+            "early_asks": early_asks, "mid_asks": mid_asks, "agents": agents}
 
 
 def cut(s, n):
@@ -185,6 +199,8 @@ def main():
     oldest = min((os.path.getmtime(p) for p in all_paths), default=now.timestamp())
     last_use = {}
     rows = []
+    asks_total = {"early_asks": 0, "mid_asks": 0, "agents": 0}
+    mid_sessions = []
     window = {p for p in all_paths if os.path.getmtime(p) >= since.timestamp()} | {p for p in hook_paths if os.path.exists(p) and os.path.getmtime(p) >= since.timestamp()}
     for path in all_paths:
         p = parse(path)
@@ -199,6 +215,10 @@ def main():
             body = digest(sid, path, p)
             open(dpath, "w", encoding="utf-8").write(body)
             rows.append((p["last"] or "", sid, p["cwd"], p["title"], len(p["prompts"]), len(body), dpath))
+            for k in asks_total:
+                asks_total[k] += p[k]
+            if p["mid_asks"]:
+                mid_sessions.append(sid)
     for path in sub_paths:
         p = parse(path)
         for s, day in (p or {}).get("uses", []):
@@ -245,9 +265,10 @@ def main():
                 unused.append(name)
             f.write(f"- {name}: last use {lu or 'never seen'}; SKILL.md modified {created}; {', '.join(skills[name])}{flag}\n")
     summary = {"window_days": a.days, "sessions": len(rows), "batches": len(batches), "skills": len(skills), "unused": unused,
-               "history_from": dt.datetime.fromtimestamp(oldest).strftime("%Y-%m-%d"), "hook_sessions_logged": len(hook_paths)}
+               "history_from": dt.datetime.fromtimestamp(oldest).strftime("%Y-%m-%d"), "hook_sessions_logged": len(hook_paths),
+               **asks_total, "mid_ask_sessions": mid_sessions}
     json.dump(summary, open(os.path.join(a.out, "summary.json"), "w"), indent=1)
-    print(f"sessions={len(rows)} batches={len(batches)} skills={len(skills)} unused={len(unused)} history_from={summary['history_from']} -> {a.out}")
+    print(f"sessions={len(rows)} batches={len(batches)} skills={len(skills)} unused={len(unused)} early_asks={asks_total['early_asks']} mid_asks={asks_total['mid_asks']} agents={asks_total['agents']} history_from={summary['history_from']} -> {a.out}")
 
 
 if __name__ == "__main__":
