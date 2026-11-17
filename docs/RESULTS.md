@@ -159,7 +159,7 @@ Measured on final messages before any hook was written, threshold set in advance
 | Keyword regex (uk/en/ru "not done / didn't wait / left") | 3 / 6 | 10 = 15% | — |
 | Haiku judge on the final message | 4 / 6 | 48 = 71% | blocks 2 |
 
-Neither passes, so no hook. Half the known cases are omissions (a venue left out, commit state not said), not a "not done" list, so no text pattern sees them. The step-6 text rule stays at the owner's request; its effect is checked in the next blind rework recheck (share of "stopped early" moments after 2026-11-18).
+Neither passes, so no hook. Half the known cases are omissions (a venue left out, commit state not said), not a "not done" list, so no text pattern sees them. The step-6 text rule was then removed (2026-11-18): no measured effect in the replay, the first version took more owner-only actions, and the Claude app already tells the model every turn that a piece left undone is still its task. The next blind rework recheck tracks the share of "stopped early" moments.
 
 ## Not measured
 
