@@ -15,7 +15,8 @@ Signals (any one):
 3. The newest claude-mem log: an explicit auth verdict in the last hour with no STORED after it:
    "[PARSER] SDK authentication failed", "Generator paused for auth", "Observer stopped ... reason=auth", or a
    "Response received" whose body is "Failed to authenticate..." / "Not logged in..." (that response is the
-   failure, not a success). An "API Error: <status>" other than 401 (Cloudflare 403) is transient and ignored.
+   failure, not a success). An "API Error:" 429 / 5xx / Cloudflare block page (2026-11-13 403) is transient
+   and ignored, with its same-session aftermath in the next 10 s; a 401 or 403 permission_error is not.
    Lines dated in the future, and WARN / verdict lines dated well before a line already read, are quoted
    text (a pasted heredoc), not events.
 
@@ -36,7 +37,8 @@ TAIL_BYTES = 2 * 1024 * 1024
 FAIL_MARKS = (b"Refusing to inject expired", b"Not logged in")
 GEN_MARKS = (b"Generator auto-starting", b"Starting SDK query")
 AUTH_BODIES = (b"Failed to authenticate", b"Not logged in")
-API_ERR = re.compile(rb"API Error: (\d{3})")  # any status but 401 (e.g. Cloudflare 403) is transient, not a login failure
+API_ERR = re.compile(rb"API Error: (\d{3})")
+TRANSIENT_MARKS = (b"Cloudflare", b"Attention Required")  # an edge block page, not a login verdict (2026-11-13)
 TRANSIENT_S = 10  # the PARSER / "Observer stopped" lines that follow a transient response are its aftermath
 FUTURE_S = 5  # a "line" dated later than now is a quoted heredoc, not an event
 BACK_S = 5  # so is one dated well before a line already read: the log is written in time order
@@ -80,8 +82,12 @@ def _ts(key):
 
 
 def _transient(text):
+    # Only rate limits, server errors and edge block pages are transient; a 401 / 403 permission_error is a verdict.
     m = API_ERR.search(text)
-    return m is not None and m.group(1) != b"401"
+    if m is None:
+        return False
+    code = m.group(1)
+    return code == b"429" or code.startswith(b"5") or any(k in text for k in TRANSIENT_MARKS)
 
 
 def _kind(tag, msg):
@@ -113,6 +119,7 @@ def scan(data, now):
     # - a generator WARN older than the grace period that no transport stall of the same session explains.
     # The harmless pattern, a generator WARN followed by STORED seconds later, stays silent.
     future_key = dt.datetime.fromtimestamp(now + FUTURE_S).strftime("%Y-%m-%d %H:%M:%S").encode()
+    now_key = dt.datetime.fromtimestamp(now).strftime("%Y-%m-%d %H:%M:%S").encode()
     ev = {"warn": [], "ok": [], "gen": [], "verdict": [], "transient": [], "stall": []}
     max_key = None
     for idx, line in enumerate(data.split(b"\n")):
@@ -123,7 +130,7 @@ def scan(data, now):
         if key > future_key:
             continue
         behind = max_key is not None and key < max_key
-        if not behind:
+        if not behind and key <= now_key:
             max_key = key
         tag, sid, msg = m.group(2), m.group(3), line[m.end():]
         kind = _kind(tag, msg)
@@ -146,20 +153,21 @@ def scan(data, now):
         if sid is None:
             d = DB_ID.search(msg)
             sid = d.group(1) if d else None
-        ev[kind].append((ts, idx, sid))
-    last_ok = max((i for t, i, _ in ev["ok"] if now - t <= WINDOW_S), default=-1)
-    verdicts = [i for t, i, sid in ev["verdict"] if now - t <= WINDOW_S
-                and not any(s == sid and 0 <= t - tt <= TRANSIENT_S and ii < i for tt, ii, s in ev["transient"])]
+        # A verdict that carries its own API status is its own event, never the aftermath of a transient one.
+        ev[kind].append((ts, idx, sid, kind == "verdict" and API_ERR.search(msg) is not None))
+    last_ok = max((i for t, i, _, _ in ev["ok"] if now - t <= WINDOW_S), default=-1)
+    verdicts = [i for t, i, sid, own in ev["verdict"] if now - t <= WINDOW_S and (own or not any(
+        s == sid and 0 <= t - tt <= TRANSIENT_S and ii < i for tt, ii, s, _ in ev["transient"]))]
     if verdicts and max(verdicts) > last_ok:
         return "SDK authentication failed in the last hour, nothing stored after it"
     warns = []
-    for t, i, _ in ev["warn"]:
+    for t, i, _, _ in ev["warn"]:
         if not GRACE_S < now - t <= WINDOW_S:
             continue
-        sids = {s for tt, _, s in ev["gen"] if abs(tt - t) <= GEN_NEAR_S}
+        sids = {s for tt, _, s, _ in ev["gen"] if abs(tt - t) <= GEN_NEAR_S}
         if not sids:
             continue
-        if any(ii > i and s in sids and s is not None for _, ii, s in ev["stall"]):
+        if any(ii > i and s in sids and s is not None for _, ii, s, _ in ev["stall"]):
             continue
         warns.append(i)
     if warns and max(warns) > last_ok:

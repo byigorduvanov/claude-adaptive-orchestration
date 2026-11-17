@@ -204,5 +204,20 @@ check("auth is broken" in out, "STORED then verdict in the same second -> line")
 # before an earlier line still counts, so the out-of-order guard never raises an alarm.
 code, out, _ = case(None, gen_warn(20) + [(1, AGENT_RUN), (None, f"{stamp(15)} {STORED_REAL}")])
 check(out == "", f"out-of-order STORED still clears an older generator WARN -> silent ({out[:60]})")
+# Review round 3: only Cloudflare / 429 / 5xx are transient; a 403 permission_error is a real auth failure.
+PERM = '[INFO ] [SDK   ] [session-902] \u2190 Response received (120 chars) {promptNumber=3} Failed to authenticate. API Error: 403 {"type":"error","error":{"type":"permission_error","message":"OAuth authentication is currently not allowed for this organization."}}'
+code, out, _ = case(None, [(55, STORED), (5, PERM)])
+check("auth is broken" in out, "403 permission_error (not Cloudflare) -> line")
+code, out, _ = case(None, [(5, CF[0].replace("403 Attention Required! | Cloudflare", "529 Overloaded"))])
+check(out == "", f"529 overloaded -> silent, transient ({out[:60]})")
+code, out, _ = case(None, [(5, CF[0]), (4.92, CF[1].replace("403 Attention Required! | Cloudflare", "401 authentication_error"))])
+check("auth is broken" in out, "transient 403, then a 401 PARSER line 5 s later -> line (not its aftermath)")
+code, out, _ = case(None, [(5, CF[0]), (4.87, CF[3])])
+check(out == "", f"'Observer stopped' 8 s after a transient 403 is its aftermath -> silent ({out[:60]})")
+code, out, _ = case(None, [(5, CF[0]), (4.5, CF[3])])
+check("auth is broken" in out, "'Observer stopped' 30 s after a transient 403 -> line")
+# A line dated slightly ahead of now must not hide a real verdict read after it.
+code, out, _ = case(None, [(None, f"{stamp(-0.05)} {AGENT_RUN}"), (5, AUTH_PAUSE)])
+check("auth is broken" in out, "line dated 3 s ahead, then a real verdict -> line")
 print(f"mem-health: {checks} checks, {failures} failed")
 sys.exit(1 if failures else 0)
