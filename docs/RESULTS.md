@@ -22,6 +22,38 @@ One owner, real work, Claude Code with Opus 5.5, October–November 2026. Projec
 - Overall rework: 25%. The most common cause was a result nobody had proven.
 - Only about 7% of sessions split into independent parts. That is a lower bound, judged from opening prompts, and it ignores parallel evidence gathering.
 
+## Round 8 (2026-11-18): a second feature build, current rules + hooks + agents vs plain Claude Code
+
+A replay of a second real feature, of a different kind: a Go data service that keeps the market caps live trading sizes
+its take-profit levels from. The task was to fill the caps CoinGecko lacks from CoinMarketCap: one request per run, the
+largest cap per ticker unless pinned, never overwrite a CoinGecko cap, and change nothing when CoinMarketCap is down.
+Both arms got the base commit, the real build brief and spec as written that morning, and the owner's words. The answer
+was hidden: no later commits, a leak-checked memory snapshot, and no access to the other repos or transcripts. The
+terminal plan's 5-hour limit stopped the first launch before any work. Both arms were restarted fresh on the app account.
+
+Grading was the same as round 7: one blind `money-reviewer` (opus/medium) per arm with one brief. The final feature's 14
+real tests were ported as 11 requirement scenarios and 8 design/edge scenarios, plus probe tests for defects.
+
+| Task | Arm | Score | Real scenarios (req / edge) | Time | Tokens | Agents | Worst defect |
+|---|---|---|---|---|---|---|---|
+| Feature build feeding a money path | Current rules | **9.5** | 11/11, 2/8 | 15.2 min | 1.54M | 1 `money-reviewer`, 2 rounds | none confirmed |
+| | Plain | 9.0 | 11/11, **3/8** | 15.6 min | **1.14M** | 1 general-purpose reviewer | LOW: a listing whose cap fields all changed drops every filled cap at once |
+
+- Both met every requirement in the same time. The 0.5-point gap is below the noise floor.
+- The gap is one defect class. The rules arm's `money-reviewer` flagged "a readable answer with no caps wipes every
+  filled cap" as HIGH, and the arm fixed it. The real feature's review found the same class. Plain's reviewer found no
+  bug, and plain shipped that class. The plain arm's probe was run on the rules arm: it refuses that answer and keeps 4
+  of 4 caps.
+- Plain used 26% fewer tokens, and it marked caps from self-reported supply apart, as the real feature did.
+- Neither arm built the real feature's price check against namesake coins. Each found the namesake risk on its own and
+  closed part of it another way. Both arms changed the spec's "largest cap" rule; one scope rule was applied to both
+  (−0.5 each).
+
+**Rounds 7 + 8 together (two features, one run per arm each):** the rules never scored lower; the mean gap was +1.25
+(+2.0 on a large money-path feature, +0.5 on a small one). Requirements were equal both times. The gap was always one
+more confirmed defect in plain, of a failure-safety class the rules' reviewer caught. The time and token savings of
+round 7 did not repeat. Reading: a small, consistent quality edge, not proof. That needs more features or repeat runs.
+
 ## Round 7 (2026-11-18): feature build, current rules + hooks + agents vs plain Claude Code
 
 A replay of a real feature: a pre-buy token guard for a Rust copy-trader. The copier must never buy a token that has blacklist functions or has not been checked yet. Checks run off the hot path, and the guard prewarms tokens traded on the chain. Both arms got the base commit before the feature and the owner's real prompt, with the owner's three real answers given up front. The answer was hidden: no later commits, a memory snapshot without notes about the feature, and the reviewer's memory without the two bug classes found on it. There were no live orders. Same setup as round 6 otherwise. Both arms hit the terminal plan's 5-hour limit and were resumed at once in the same session on the app account (about 1 s pause).
