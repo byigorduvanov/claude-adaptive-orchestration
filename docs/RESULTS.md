@@ -22,6 +22,19 @@ One owner, real work, Claude Code with Opus 5.5, October–November 2026. Projec
 - Overall rework: 25%. The most common cause was a result nobody had proven.
 - Only about 7% of sessions split into independent parts. That is a lower bound, judged from opening prompts, and it ignores parallel evidence gathering.
 
+## Confirmed defects across the money-path tasks (rounds 6–8)
+
+Every defect below was confirmed by the blind grader with a probe test or a code trace (grades: `.ab-r6/grade/T2*/GRADE.md`, `.ab-r7/VERDICT.md`, `.ab-r8/VERDICT.md` in the owner's workspace).
+
+| Task | Pipeline | Vanilla |
+|---|---|---|
+| Fix of two bugs (round 6) | 1 MEDIUM + 2 LOW | 2 MEDIUM + 2 LOW |
+| Large feature (round 7) | 1 MEDIUM + 1 LOW | 2 MEDIUM + 3 LOW |
+| Smaller feature (round 8) | none | 1 LOW |
+| **Total** | **2 MEDIUM + 3 LOW** | **4 MEDIUM + 6 LOW** |
+
+The pipeline shipped fewer defects in each of the three tasks. With one run per arm, a 3-of-3 split would happen by chance about 1 time in 8 if the two were equal.
+
 ## Round 8 (2026-11-18): a second feature build, current rules + hooks + agents vs plain Claude Code
 
 A replay of a second real feature, of a different kind: a Go data service that keeps the market caps live trading sizes

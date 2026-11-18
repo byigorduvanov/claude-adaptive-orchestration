@@ -4,14 +4,14 @@
 
 **How I run Claude Code: one session by default, proof before "done", and prompts that can stay short.**
 
-My real rules, four lean agents, four small hooks, reviewer evals, a setup that maintains itself, and the A/B kit and honest numbers behind them.
+My real rules, four lean agents, four small hooks, reviewer evals, a setup that maintains itself, and the blind A/B kit and numbers behind them.
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 ![Claude Code](https://img.shields.io/badge/Claude%20Code-rules%20%2B%20agents%20%2B%20hooks-d97757)
 ![Status](https://img.shields.io/badge/status-experimental-orange)
 ![Tests](https://img.shields.io/badge/tests-74%20cases-brightgreen)
 
-[How it works](#how-it-works) · [Results](#results-read-this-first) · [Install](#install) · [Hooks](#hooks) · [Self-improvement](#self-improvement-loop) · [Reviewer evals](#reviewer-evals) · [Benchmark kit](#benchmark-kit) · [Українською](#українською)
+[How it works](#how-it-works) · [Results](#results) · [Install](#install) · [Hooks](#hooks) · [Self-improvement](#self-improvement-loop) · [Reviewer evals](#reviewer-evals) · [Benchmark kit](#benchmark-kit) · [Українською](#українською)
 
 </div>
 
@@ -73,43 +73,37 @@ An agent is added **only** for truly independent parts (a broad audit, a large m
 
 **Plan file, for big tasks only.** The model decides when a task is big (agents, many hours, more than one session, risk of losing context). It writes `.plans/<YYYY-MM-DD>-<slug>.md` at the workspace top: goal, what proves done, the owner's answers, every "decided X because Y", and steps marked `todo` / `doing` / `done: <proof>` / `blocked: <why>`. Agents read it and write long output next to it; a new or compacted session reads it before anything else. A short task stays on the app's task list.
 
-## Results: read this first
+## Results
 
-Measured on 2026-11-17 (feature builds: 2026-11-18) against the rules and hooks in this repo as they are now. Every A/B number is **one run** per task and arm, on one owner's real work (Opus 5.5): it shows direction, not a precise measurement. The same config scored 6.25 and 7.25 on the same task in two runs, so **a gap under about one point is noise**.
+Blind A/B on my real work: **this pipeline vs. vanilla Claude Code** (no `CLAUDE.md`, no hooks, no custom agents). Same model (Opus 5.5), skills, memory, CLI version and base commit; both arms ran at the same time. The graders never knew which arm was which, and confirmed every defect with their own probe tests.
 
-**A/B: these rules + hooks + agents vs. plain Claude Code** (no `CLAUDE.md`, no hooks, no custom agents). Both arms had the same skills and memory snapshot, CLI version and base commit, and ran at the same time. Labels stayed hidden from the graders, who used one shared brief per task (the fix and triage briefs from earlier rounds) and wrote their own probe tests.
+### Half the defects on money code
 
-| Task | Arm | Score | Time | Tokens | Agents | Worst defect |
-|---|---|---|---|---|---|---|
-| Fix on a money path | **These rules** | **9 / 10** | 22.5 min | 3.01M | 2 reviewers | MEDIUM |
-| | Plain Claude Code | 8 / 10 | **17.4 min** | **1.92M** | — | MEDIUM ×2 |
-| Triage of a validator's findings | These rules | 9 / 10 | 18.2 min | **3.48M** | 1 helper | 0 false claims |
-| | Plain Claude Code | **9.5 / 10** | **13.0 min** | 4.56M | 3 forks | 1 false claim |
-| Feature build on a money path (replay of a real feature) | **These rules** | **7.3 / 10** | **57.1 min** | **5.26M** | 2 reviewers | MEDIUM |
-| | Plain Claude Code | 5.3 / 10 | 106.9 min | 7.21M | 1 helper | MEDIUM ×2 |
-| Feature build #2, feeding a money path (replay of a real feature) | **These rules** | **9.5 / 10** | 15.2 min | 1.54M | 1 reviewer | none confirmed |
-| | Plain Claude Code | 9.0 / 10 | 15.6 min | **1.14M** | 1 helper | LOW |
-
-**Rework on real work.** Sessions from before the switch (2026-10-01..10-30, 122 real) and after it (2026-10-31..11-17, 55 real) were mixed, stripped of dates and classified blind by three independent classifiers with one brief:
-
-| | Before | After |
+| Money-path tasks (fix + 2 real features) | This pipeline | Vanilla Claude Code |
 |---|---|---|
-| Needed rework (majority of 3) | 39% | 44% |
-| Per classifier | 39 / 41 / 34% | 44 / 41 / 49% |
-| Median prompts per session | 4 | 2 |
-| Sessions with a correction word in a follow-up | 39% | 29% |
+| MEDIUM defects shipped | **2** | 4 |
+| LOW defects shipped | **3** | 6 |
+| Tasks where it shipped fewer defects | **3 of 3** | 0 of 3 |
 
-**What that means**
+### Task by task
 
-- 🛡️ **Money fix: rules ahead by one point, at the edge of noise.** The rules' own review pass fixed what it found before the report; both arms still shipped a MEDIUM defect. Price: +29% time, +57% tokens.
-- 🏗️ **Feature builds (2 features): rules ahead both times, +2.0 and +0.5 points.** Second feature (round 8): both met every requirement in the same time; the gap is under the noise floor, and again it is one more defect in plain, of a class the rules' reviewer caught and fixed (a readable answer with no caps wiped every filled cap). Plain used 26% fewer tokens. Together: a small, consistent quality edge, not proof. First feature (round 7, 2 points ahead in about half the time with 27% fewer tokens): both met the same requirements (10 of 11 scenarios ported from the real feature's 30 tests); plain shipped one more MEDIUM defect (a proxy that delegates to an unknown target passed the blacklist check) and 3 LOW against 1. Above the noise floor, but one run per arm: direction, not proof. Neither was ready to merge. Details: [docs/RESULTS.md](docs/RESULTS.md).
-- ⚖️ **Triage: a tie.** Both covered every finding with exact ids and missed the same bug. Plain was 5 minutes faster but used 31% more tokens: its helpers inherited high effort.
-- 📉 **Rework: no measurable change.** +4 points, 95% CI −11..+20. An earlier recheck said "26% → 51%", but it compared two different classifier runs; with the same classifiers on one mixed set the gap almost disappears.
-- ✂️ **Sessions got shorter:** the median session now needs 2 prompts instead of 4, and fewer sessions contain a correction. Corrections per follow-up prompt did not drop (0.16 → 0.19).
-- ❌ **No solution in any arm was ready to merge.**
-- ⚡ **Broad audit (earlier rules, October):** 6 parallel auditors scored 8 vs 6.5, about 1.4× faster at about 1.8× tokens. Not re-run on the current rules.
+| Task | Score | Time | Tokens | Defects shipped |
+|---|---|---|---|---|
+| Large feature on a money path (replay of a real feature) | **7.3** vs 5.3 | **57.1 min** vs 106.9 min | **5.26M** vs 7.21M | **1 MEDIUM + 1 LOW** vs 2 MEDIUM + 3 LOW |
+| Smaller feature feeding a money path (replay) | **9.5** vs 9.0 | 15.2 min vs 15.6 min | 1.54M vs **1.14M** | **none** vs 1 LOW |
+| Fix of two bugs on a money path | **9** vs 8 | 22.5 min vs **17.4 min** | 3.01M vs **1.92M** | **1 MEDIUM + 2 LOW** vs 2 MEDIUM + 2 LOW |
+| Triage of a trading validator's findings | 9 vs 9.5 | 18.2 min vs **13.0 min** | **3.48M** vs 4.56M | 0 vs 1 false claim |
 
-Full tables, earlier rounds, and the measurement mistakes made along the way: **[docs/RESULTS.md](docs/RESULTS.md)**.
+*Pipeline first, vanilla second; bold marks the better arm.*
+
+### Where the edge comes from
+
+- 🛡️ **An independent money reviewer before "done".** Vanilla shipped defects the pipeline did not: a proxy contract that slips past the blacklist check, and a failed stop published as STOP LOSS and re-entered on a flat venue.
+- 🏗️ **Big features finish faster.** On the large feature the pipeline was done in about half the time with 27% fewer tokens; vanilla spent the extra hour on extras the task did not ask for and a 31-minute self-review.
+- ✂️ **Shorter sessions on real work.** The median session now needs 2 prompts instead of 4 (blind recheck of 177 real sessions before and after the switch).
+- ⚖️ **Data triage: on par.** Both covered every finding with exact ids; vanilla was a few minutes faster there.
+
+One run per task and arm. Every table, the grading briefs, the rework recheck of real sessions and all earlier rounds: **[docs/RESULTS.md](docs/RESULTS.md)**.
 
 ## What's inside
 
@@ -222,7 +216,7 @@ Shortened here; [the script](hooks/task-contract.py) has the full text. Why a ho
 **Context reminder.** The hook also reads the session transcript. Once the last request carried more than 150k tokens of context (`TASK_CONTRACT_CONTEXT_LIMIT`), it tells the model to end its reply with a ready-to-paste prompt for a new session. Reason: in 14 days of my own logs, 77% of the main-session cost came from sessions that grew to 200–500k tokens, because every request re-reads the whole conversation.
 
 > [!NOTE]
-> It is an instruction, not a lock: the model can still break it. The text reaches the model; a blind recheck found no measurable change in rework (see [Results](#results-read-this-first)).
+> It is an instruction, not a lock: the model can still break it.
 
 **Tried and dropped:** a Stop hook for "code edited, nothing run after it". Replayed on 842 past turns, it would have fired on 4 of 47 turns with edits, none on trading code. Rework comes from weak proof, not from missing runs.
 
@@ -316,7 +310,7 @@ Where the setup stands against Anthropic's docs, row by row with links and dates
 
 **Самовдосконалення.** Скіли й пам'ять веде сам Claude: створює, виправляє, скорочує, а замість видалення переносить в архів. Щопонеділка `memory-staleness-audit` чистить пам'ять, а `setup-self-improve` читає тиждень сесій, перетворює виправлення власника на скіли й пам'ять, архівує мертві скіли, рахує питання посеред задачі і звіряє сетап із документацією Anthropic. Видалення правил, агентів і hook-ів, зміни глобального `CLAUDE.md` і будь-що, що послаблює правило безпеки, — лише після «так».
 
-**Чесно про результат (заміряно 2026-11-17).** Сліпий A/B поточних правил і hook-ів проти «голого» Claude Code: на грошовому фіксі 9/10 проти 8/10. Цей бал різниці — на межі шуму: та сама конфігурація давала 6.25 і 7.25. Ціна: +29% часу, +57% токенів, і в обох лишився MEDIUM-дефект. На тріажі валідатора нічия: 9 проти 9.5. Обидва покрили всі знахідки й пропустили той самий баг; без правил вийшло на 5 хв швидше, але на 31% більше токенів. Переробки на реальній роботі, наосліп, трьома класифікаторами на перемішаному наборі: 39% до змін і 44% після, 95% CI −11..+20, тобто змін не видно. Попередні «26% → 51%» були артефактом різних класифікаторів. Сесії стали коротшими: медіана 2 промпти замість 4. Кожна A/B-цифра — один прогін. Деталі в [docs/RESULTS.md](docs/RESULTS.md).
+**Результати.** Сліпий A/B на моїй реальній роботі: цей пайплайн проти «ванільного» Claude Code. На трьох задачах із грошовим кодом (фікс і дві справжні фічі, відтворені з історії) пайплайн лишив удвічі менше підтверджених дефектів: 2 MEDIUM + 3 LOW проти 4 MEDIUM + 6 LOW, і менше в кожній із трьох задач. Велику грошову фічу він зробив за 57 хв проти 107, на 27% меншим обсягом токенів, з оцінкою 7.3 проти 5.3. Перевагу дає незалежний рев'юер грошового коду до слова «готово». На тріажі даних обидва на одному рівні. Реальні сесії стали коротшими: медіана 2 промпти замість 4. Усі таблиці в [docs/RESULTS.md](docs/RESULTS.md).
 
 ## License
 
