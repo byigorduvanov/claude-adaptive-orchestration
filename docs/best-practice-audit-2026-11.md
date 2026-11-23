@@ -127,3 +127,18 @@ Changelog read live on 2026-11-16: verbatim for 2.1.325 (2026-11-13) and 2.1.323
 | 42 | 2.1.325: subagents with their own model no longer moved to the plan-mode model, and file reads sized with the subagent's own model | Our explicit `model` per agent is now honoured in more cases | follow |
 | 43 | 2.1.323: `subagentStatusLine` setting removed | Not set here | follow |
 | 44 | CLI reference, `--desktop`: "Add `--continue`, or `--resume` with a session ID, to open that session in Desktop instead" (v2.1.285+) | The answer to "how do I continue that terminal session in the app" (asked 2026-11-11, four tries) is `claude --desktop --resume <session-id>` from the session's folder; Desktop → CLI is not documented in the part read | record |
+
+## Weekly re-check, 2026-11-23 (changelog 2.1.326–2.1.330)
+
+Changelog read live on 2026-11-23: verbatim for 2.1.330 (Nov 20) and 2.1.329 (Nov 19); partly verbatim for 2.1.328 (Nov 19); summary only for 2.1.327 (Nov 17) and 2.1.326 (Nov 16). Installed: 2.1.330.
+
+| # | Change | Effect here | Verdict |
+|---|---|---|---|
+| 45 | 2.1.330: recurring tasks and `/loop` now run up to 30 days instead of 7 | Scheduled weekly tasks no longer need renewal every 7 days | follow (no change) |
+| 46 | 2.1.330: more `rm` commands on root, home or top-level folders require approval | Aligns with our deletion safety rules | follow |
+| 47 | 2.1.330: prompt hooks accept model aliases | No hook here uses model names; noted for future | record |
+| 48 | 2.1.330: fix for ExitWorktree deleting a worktree another session was using | Known risk in shared hft checkouts; fix is upstream now | follow |
+| 49 | 2.1.330: fix for freeze after compacting long conversations | Fixes a pain point in long Robinhood sessions (3 sessions hit 150k+ tokens this week) | follow |
+| 50 | 2.1.329: `/code-review` with no target reviews the whole branch | Already use explicit targets; no change | follow |
+| 51 | 2.1.328: `"onFailure": "block"` for `mcp_tool` hooks | Could be useful for mandatory memory checks; not adding now | record |
+| 52 | 2.1.327: `/status` lists broken agent, skill and command files and keybinding errors | Useful for diagnostics after skill archiving | follow |

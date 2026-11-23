@@ -34,6 +34,7 @@ TAG = re.compile(r"<(system-reminder|antml:[a-z_]+)>.*?</\1>", re.S)
 BATCH_CHARS = 60000
 PROMPT_MAX = 1500
 REPLY_MAX = 500
+PROBE_TITLES = re.compile(r"^(Context probe|Measurement probe)", re.I)
 
 
 def text_of(content):
@@ -219,7 +220,7 @@ def main():
         for s, day in p["uses"]:
             day = day or dt.datetime.fromtimestamp(os.path.getmtime(path)).strftime("%Y-%m-%d")
             last_use[s] = max(last_use.get(s, ""), day)
-        if path in window and p["prompts"] and (p["last"] or "9") >= since.astimezone(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M"):
+        if path in window and p["prompts"] and (p["last"] or "9") >= since.astimezone(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M") and not PROBE_TITLES.search(p["title"] or ""):
             sid = os.path.basename(path)[:-6]
             dpath = os.path.join(a.out, "digests", sid + ".md")
             body = digest(sid, path, p)
