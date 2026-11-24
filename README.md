@@ -213,7 +213,7 @@ A `UserPromptSubmit` hook that adds this to every prompt from the owner, and not
 
 Shortened here; [the script](hooks/task-contract.py) has the full text. Why a hook: `CLAUDE.md` is read at the start and fades in a long session, while the hook puts the rules next to each task. A folder with its own `.claude/task-contract.md` (the assistant vault) gets that text instead.
 
-**Context reminder.** The hook also reads the session transcript. Once the last request carried more than 150k tokens of context (`TASK_CONTRACT_CONTEXT_LIMIT`), it tells the model to end its reply with a ready-to-paste prompt for a new session. Reason: in 14 days of my own logs, 77% of the main-session cost came from sessions that grew to 200–500k tokens, because every request re-reads the whole conversation.
+**Context reminder.** The hook also reads the session transcript. Once the last request carried at least 350k tokens of context (`TASK_CONTRACT_CONTEXT_LIMIT`, default 350k), it tells the model to end its reply with a ready-to-paste prompt for a new session. Reason: in 14 days of my own logs, 77% of the main-session cost came from sessions that grew to 200–500k tokens, because every request re-reads the whole conversation. The limit started at 150k; I raised it to 350k on 2026-11-24.
 
 > [!NOTE]
 > It is an instruction, not a lock: the model can still break it.

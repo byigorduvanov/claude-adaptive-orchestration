@@ -35,14 +35,21 @@ def transcript(tokens, sidechain_tokens=None):
     f.close()
     return f.name
 CTX = [
-    ("fix this", transcript(237000), True),
+    ("fix this", transcript(420000), True),
     ("fix this", transcript(90000), False),
+    ("fix this", transcript(300000), False),
+    ("fix this", transcript(349999), False),
+    ("fix this", transcript(350000), True),
+    ("fix this", transcript(200000), True, "150000"),
     ("fix this", transcript(90000, sidechain_tokens=400000), False),
     ("fix this", "/nonexistent.jsonl", False),
-    ("<task-notification>x", transcript(237000), False),
+    ("<task-notification>x", transcript(420000), False),
 ]
-for prompt, path, expected in CTX:
-    r = subprocess.run([sys.executable, HOOK], input=json.dumps({"prompt": prompt, "transcript_path": path}), capture_output=True, text=True)
+for prompt, path, expected, *limit in CTX:
+    env = {k: v for k, v in os.environ.items() if k != "TASK_CONTRACT_CONTEXT_LIMIT"}
+    if limit:
+        env["TASK_CONTRACT_CONTEXT_LIMIT"] = limit[0]
+    r = subprocess.run([sys.executable, HOOK], input=json.dumps({"prompt": prompt, "transcript_path": path}), capture_output=True, text=True, env=env)
     got = "new session" in r.stdout and "Context is" in r.stdout
     if r.returncode != 0 or got != expected:
         failures += 1

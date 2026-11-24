@@ -17,7 +17,7 @@ import os
 import re
 import sys
 
-CONTEXT_LIMIT = int(os.environ.get("TASK_CONTRACT_CONTEXT_LIMIT", "150000"))
+CONTEXT_LIMIT = int(os.environ.get("TASK_CONTRACT_CONTEXT_LIMIT", "350000"))
 USAGE = re.compile(r'"input_tokens":(\d+),"cache_creation_input_tokens":(\d+),"cache_read_input_tokens":(\d+)')
 
 CONTRACT = """Task contract (ignore for a plain question or conversation):
